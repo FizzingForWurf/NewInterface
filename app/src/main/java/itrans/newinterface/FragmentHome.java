@@ -1,12 +1,21 @@
 package itrans.newinterface;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+
+import com.google.android.gms.maps.model.LatLng;
+
+import java.util.ArrayList;
 
 public class FragmentHome extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -15,6 +24,8 @@ public class FragmentHome extends Fragment {
 
     private String mParam1;
     private String mParam2;
+
+    private Button buttonTest;
 
     public FragmentHome() {
         // Required empty public constructor
@@ -51,6 +62,7 @@ public class FragmentHome extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_home, container, false);
+        View v = inflater.inflate(R.layout.fragment_home, container, false);
+        return v;
     }
 }

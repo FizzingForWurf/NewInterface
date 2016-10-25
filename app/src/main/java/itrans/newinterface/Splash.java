@@ -3,9 +3,11 @@ package itrans.newinterface;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.location.Location;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Html;
@@ -105,8 +107,7 @@ public class Splash extends AppCompatActivity {
             Log.e("AFTER DELETE 2", String.valueOf(db2.getNumberOfRows()));
             db2.close();
 
-            //getBusNo();
-            startSortingBusStops();
+            getBusNo();
         }else {
             splashDescription.setVisibility(View.VISIBLE);
             downloadProgress.setVisibility(View.INVISIBLE);
@@ -287,6 +288,12 @@ public class Splash extends AppCompatActivity {
             Log.e("SORTING LATITUDE", String.valueOf(variable2));
             Log.e("SORTING DISTANCE2", String.valueOf(lastDistance2));
         }
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("latitudinalArray", latitudinalArray.toString());
+        editor.putString("longitudinalArray", longitudinalArray.toString());
+        editor.apply();
 
         int number = -1;
         Log.e("SORTING SIZES", String.valueOf(latitudinalArray.size()) + ", " + String.valueOf(longitudinalArray.size()));

@@ -77,22 +77,40 @@ public class BusNumberDBAdapter {
 
     public String getBusStopLatLng(String stopID) {
         String[] columns = {KEY_ID, BUS_STOP_NO, BUS_STOP_NAME, BUS_STOP_DESCRIPTION, BUS_STOP_LATLNG};
-        Cursor c = _db.query(DATABASE_TABLE, columns, BUS_STOP_NO + " = " + stopID, null, null, null, null);
-        int iLATLNG = c.getColumnIndex(BUS_STOP_LATLNG);
-        if (c != null){
-            c.moveToFirst();
-            return c.getString(iLATLNG);
+        Cursor c = null;
+        try {
+            c = _db.query(DATABASE_TABLE, columns, BUS_STOP_NO + " = " + stopID, null, null, null, null);
+            int iLATLNG = c.getColumnIndex(BUS_STOP_LATLNG);
+            if (c != null) {
+                c.moveToFirst();
+                return c.getString(iLATLNG);
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            if (c != null) {
+                c.close();
+            }
         }
         return null;
     }
 
     public String getBusStopName(String stopID) {
         String[] columns = {KEY_ID, BUS_STOP_NO, BUS_STOP_NAME, BUS_STOP_DESCRIPTION, BUS_STOP_LATLNG};
-        Cursor c = _db.query(DATABASE_TABLE, columns, BUS_STOP_NO + " = " + stopID, null, null, null, null);
-        int iNAME = c.getColumnIndex(BUS_STOP_NAME);
-        if (c != null){
-            c.moveToFirst();
-            return c.getString(iNAME);
+        Cursor c = null;
+        try {
+            c = _db.query(DATABASE_TABLE, columns, BUS_STOP_NO + " = " + stopID, null, null, null, null);
+            int iNAME = c.getColumnIndex(BUS_STOP_NAME);
+            if (c != null) {
+                c.moveToFirst();
+                return c.getString(iNAME);
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            if (c != null) {
+                c.close();
+            }
         }
         return null;
     }
@@ -151,6 +169,26 @@ public class BusNumberDBAdapter {
         try {
             c = _db.query(DATABASE_TABLE, columns, KEY_ID + " = " + rowNum, null, null, null, null);
             int iId = c.getColumnIndex(BUS_STOP_NO);
+            if (c != null){
+                c.moveToFirst();
+                return c.getString(iId);
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+        return null;
+    }
+
+    public String getRoad(int rowNum) {
+        String[] columns = {KEY_ID, BUS_STOP_NO, BUS_STOP_NAME, BUS_STOP_LATITUDE, BUS_STOP_DESCRIPTION, BUS_STOP_LATLNG};
+        Cursor c = null;
+        try {
+            c = _db.query(DATABASE_TABLE, columns, KEY_ID + " = " + rowNum, null, null, null, null);
+            int iId = c.getColumnIndex(BUS_STOP_DESCRIPTION);
             if (c != null){
                 c.moveToFirst();
                 return c.getString(iId);

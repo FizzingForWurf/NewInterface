@@ -7,7 +7,6 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
-import android.location.Location;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
@@ -21,19 +20,12 @@ import android.support.v7.widget.Toolbar;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ImageSpan;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
-
-import java.util.ArrayList;
-import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -81,8 +73,6 @@ public class MainActivity extends AppCompatActivity {
                     case 0:
                         setTitle("iTrans");
                         AddDestinationFab.hide();
-                        Drawable drawable = MainActivity.this.getResources().getDrawable(R.drawable.ic_home_white_24dp);
-                        drawable.setColorFilter(new PorterDuffColorFilter(Color.parseColor("#ffffff"), PorterDuff.Mode.SRC_IN));
                         break;
                     case 1:
                         setTitle("Alarms");
@@ -103,94 +93,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-
-        BusStopContainerDBAdapter db = new BusStopContainerDBAdapter(getApplicationContext());
-        db.open();
-        for (int i = 1; i < 13; i++) {
-            String test = db.getInitialBusStops(i);
-            Log.e("SORTING TEST", test);
-        }
-        db.close();
-
-        //startSortingBusStops();
     }
-
-    private void startSortingBusStops(){
-        ArrayList<Double> longitudinalArray = new ArrayList<>();
-        longitudinalArray.add(103.597870);
-        ArrayList<Double> latitudinalArray = new ArrayList<>();
-        latitudinalArray.add(1.476153);
-        final double latitudeIncrement = 4/110.574; //in kilometers, 0.036175
-        final double longitudeIncrement = 4/(111.320 * Math.cos(Math.toRadians(1.476153))); //in kilometers, 0.035944376
-        double lastDistance1 = 0;
-        double lastDistance2 = 0;
-
-        HashMap<Integer, LatLngBounds> busStopsContainers = new HashMap<>();
-        //Boundaries of Singapore
-        //LatLng Northwest = new LatLng(1.476153, 103.597870);
-        //LatLng Southeast = new LatLng(1.216673, 104.102554);
-
-        Location topLeft = new Location("topleft");
-        topLeft.setLatitude(1.476153);
-        topLeft.setLongitude(103.597870);
-
-        Location topRight = new Location("topright");
-        topRight.setLatitude(1.476153);
-        topRight.setLongitude(104.102554);
-
-        Location bottomLeft = new Location("bottomleft");
-        bottomLeft.setLatitude(1.216673);
-        bottomLeft.setLongitude(103.597870);
-
-        Location bottomRight = new Location("bottomright");
-        bottomRight.setLatitude(1.216673);
-        bottomRight.setLongitude(104.102554);
-
-        double longitudinalDistance = topLeft.distanceTo(topRight);
-        double latitudinalDistance = topLeft.distanceTo(bottomLeft);
-        Log.e("DISTANCES LATLNG", String.valueOf(latitudinalDistance) + ", " + String.valueOf(longitudinalDistance));
-
-        //while loop for longitude
-        double variable1 = 103.597870;
-        while (lastDistance1 <= longitudinalDistance){
-            variable1 += longitudeIncrement;
-            longitudinalArray.add(variable1);
-            Location newTemporaryPoint = new Location("TemporaryPoint");
-            newTemporaryPoint.setLatitude(1.476153);
-            newTemporaryPoint.setLongitude(variable1);
-            lastDistance1 = topLeft.distanceTo(newTemporaryPoint);
-            Log.e("SORTING LONGITUDE", String.valueOf(variable1));
-            Log.e("SORTING DISTANCE1", String.valueOf(lastDistance1));
-        }
-
-        //while loop for latitude
-        double variable2 = 1.476153;
-        while (lastDistance2 <= latitudinalDistance){
-            variable2 -= latitudeIncrement;
-            latitudinalArray.add(variable2);
-            Location newPoint = new Location("newPoint");
-            newPoint.setLatitude(variable2);
-            newPoint.setLongitude(103.597870);
-            lastDistance2 = topLeft.distanceTo(newPoint);
-            Log.e("SORTING LATITUDE", String.valueOf(variable2));
-            Log.e("SORTING DISTANCE2", String.valueOf(lastDistance2));
-        }
-
-        int number = 1;
-        Log.e("SORTING SIZES", String.valueOf(latitudinalArray.size()) + ", " + String.valueOf(longitudinalArray.size()));
-        for (int i = 0; i < latitudinalArray.size() - 2; i++){
-            for (int a = 0; a < longitudinalArray.size() - 2; a++){
-                number++;
-                LatLng Southwest = new LatLng(latitudinalArray.get(i + 1), longitudinalArray.get(a));
-                LatLng Northeast = new LatLng(latitudinalArray.get(i), longitudinalArray.get(a + 1));
-                LatLngBounds container = new LatLngBounds(Southwest, Northeast);
-                busStopsContainers.put(number, container);
-                Log.e("SORTING HASHMAP", Southwest.toString() + ", " + Northeast.toString());
-            }
-        }
-        Log.e("HASHMAP SIZE", String.valueOf(busStopsContainers.size()));
-    }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -294,8 +197,8 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public CharSequence getPageTitle(int position) {
-            int[] tabIcons = {R.drawable.ic_home_white_24dp, R.drawable.ic_access_alarm_white_24dp,
-                    R.drawable.ic_bookmark_white_24dp, R.drawable.ic_room_white_24dp};
+            int[] tabIcons = {R.drawable.ic_home_blue_24dp, R.drawable.ic_access_alarm_blue_24dp,
+                    R.drawable.ic_bookmark_blue_24dp, R.drawable.ic_room_blue_24dp};
 
             Drawable image = ContextCompat.getDrawable(MainActivity.this, tabIcons[position]);
             image.setBounds(0, 0, image.getIntrinsicWidth(), image.getIntrinsicHeight());

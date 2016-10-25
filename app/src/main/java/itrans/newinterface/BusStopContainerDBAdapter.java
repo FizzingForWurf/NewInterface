@@ -3,10 +3,10 @@ package itrans.newinterface;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
 public class BusStopContainerDBAdapter {
 
@@ -80,8 +80,30 @@ public class BusStopContainerDBAdapter {
 
     public String getInitialBusStops(int position) {
         String[] columns = {KEY_ID, SOUTHWEST, NORTHEAST, BUS_STOPS_ARRAY};
-        Cursor c = _db.query(DATABASE_TABLE, columns, KEY_ID + " = " + position, null,null,null,null);
+        Cursor c = _db.query(DATABASE_TABLE, columns, KEY_ID + " = " + position, null, null, null, null);
         int BusStops = c.getColumnIndex(BUS_STOPS_ARRAY);
+        if (c != null){
+            c.moveToFirst();
+            return c.getString(BusStops);
+        }
+        return null;
+    }
+
+    public String getSouthwest(int position) {
+        String[] columns = {KEY_ID, SOUTHWEST, NORTHEAST, BUS_STOPS_ARRAY};
+        Cursor c = _db.query(DATABASE_TABLE, columns, KEY_ID + " = " + position, null, null, null, null);
+        int BusStops = c.getColumnIndex(SOUTHWEST);
+        if (c != null){
+            c.moveToFirst();
+            return c.getString(BusStops);
+        }
+        return null;
+    }
+
+    public String getNortheast(int position) {
+        String[] columns = {KEY_ID, SOUTHWEST, NORTHEAST, BUS_STOPS_ARRAY};
+        Cursor c = _db.query(DATABASE_TABLE, columns, KEY_ID + " = " + position, null, null, null, null);
+        int BusStops = c.getColumnIndex(NORTHEAST);
         if (c != null){
             c.moveToFirst();
             return c.getString(BusStops);
@@ -95,5 +117,9 @@ public class BusStopContainerDBAdapter {
         updatedValues.put(BUS_STOPS_ARRAY, busStopId);
 
         _db.update(DATABASE_TABLE, updatedValues, KEY_ID + "=" + position, null);
+    }
+
+    public int getNumberOfRows(){
+        return (int) DatabaseUtils.queryNumEntries(_db, DATABASE_TABLE);
     }
 }
