@@ -3,9 +3,6 @@ package itrans.newinterface;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -20,12 +17,12 @@ import android.support.v7.widget.Toolbar;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ImageSpan;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
+
+import itrans.newinterface.Nearby.FragmentNearby;
+import itrans.newinterface.Nearby.NearbyMap;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -48,8 +45,12 @@ public class MainActivity extends AppCompatActivity {
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
 
-        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
+        final TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(mViewPager);
+        tabLayout.getTabAt(0).setIcon(R.drawable.ic_home_white_24dp);
+        tabLayout.getTabAt(1).setIcon(R.drawable.ic_access_alarm_blue_24dp);
+        tabLayout.getTabAt(2).setIcon(R.drawable.ic_bookmark_blue_24dp);
+        tabLayout.getTabAt(3).setIcon(R.drawable.ic_room_blue_24dp);
 
         final FloatingActionButton AddDestinationFab = (FloatingActionButton) findViewById(R.id.AddDestinationFab);
         AddDestinationFab.hide();
@@ -57,6 +58,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(MainActivity.this, AddDestination.class);
+                startActivity(intent);
+            }
+        });
+
+        final FloatingActionButton viewMapFab = (FloatingActionButton) findViewById(R.id.ViewMapFab);
+        viewMapFab.hide();
+        viewMapFab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, NearbyMap.class);
                 startActivity(intent);
             }
         });
@@ -73,18 +84,39 @@ public class MainActivity extends AppCompatActivity {
                     case 0:
                         setTitle("iTrans");
                         AddDestinationFab.hide();
+                        viewMapFab.hide();
+                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_home_white_24dp);
+                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_access_alarm_blue_24dp);
+                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_bookmark_blue_24dp);
+                        tabLayout.getTabAt(3).setIcon(R.drawable.ic_room_blue_24dp);
                         break;
                     case 1:
                         setTitle("Alarms");
                         AddDestinationFab.show();
+                        viewMapFab.hide();
+                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_home_blue_24dp);
+                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_access_alarm_white_24dp);
+                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_bookmark_blue_24dp);
+                        tabLayout.getTabAt(3).setIcon(R.drawable.ic_room_blue_24dp);
                         break;
                     case 2:
                         setTitle("Bookmarks");
                         AddDestinationFab.hide();
+                        viewMapFab.hide();
+                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_home_blue_24dp);
+                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_access_alarm_blue_24dp);
+                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_bookmark_white_24dp);
+                        tabLayout.getTabAt(3).setIcon(R.drawable.ic_room_blue_24dp);
                         break;
                     case 3:
                         setTitle("Nearby");
                         AddDestinationFab.hide();
+                        viewMapFab.show();
+                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_home_blue_24dp);
+                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_access_alarm_blue_24dp);
+                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_bookmark_blue_24dp);
+                        tabLayout.getTabAt(3).setIcon(R.drawable.ic_room_white_24dp);
+                        break;
                 }
             }
 
@@ -132,36 +164,36 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-        private static final String ARG_SECTION_NUMBER = "section_number";
-
-        public PlaceholderFragment() {
-        }
-
-        /**
-         * Returns a new instance of this fragment for the given section
-         * number.
-         */
-        public static PlaceholderFragment newInstance(int sectionNumber) {
-            PlaceholderFragment fragment = new PlaceholderFragment();
-            Bundle args = new Bundle();
-            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-            fragment.setArguments(args);
-            return fragment;
-        }
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_one, container, false);
-            TextView textView = (TextView) rootView.findViewById(R.id.section_label);
-            textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
-            return rootView;
-        }
-    }
+//    /**
+//     * A placeholder fragment containing a simple view.
+//     */
+//    public static class PlaceholderFragment extends Fragment {
+//        private static final String ARG_SECTION_NUMBER = "section_number";
+//
+//        public PlaceholderFragment() {
+//        }
+//
+//        /**
+//         * Returns a new instance of this fragment for the given section
+//         * number.
+//         */
+//        public static PlaceholderFragment newInstance(int sectionNumber) {
+//            PlaceholderFragment fragment = new PlaceholderFragment();
+//            Bundle args = new Bundle();
+//            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
+//            fragment.setArguments(args);
+//            return fragment;
+//        }
+//
+//        @Override
+//        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+//                                 Bundle savedInstanceState) {
+//            View rootView = inflater.inflate(R.layout.fragment_one, container, false);
+//            TextView textView = (TextView) rootView.findViewById(R.id.section_label);
+//            textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
+//            return rootView;
+//        }
+//    }
 
     /**
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
@@ -205,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
             SpannableString sb = new SpannableString(" ");
             ImageSpan imageSpan = new ImageSpan(image, ImageSpan.ALIGN_BOTTOM);
             sb.setSpan(imageSpan, 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            return sb;
+            return null;
         }
     }
 }

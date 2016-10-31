@@ -1,4 +1,4 @@
-package itrans.newinterface;
+package itrans.newinterface.Nearby;
 
 import android.content.Context;
 import android.util.Log;
@@ -6,11 +6,16 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
-import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
+
+import itrans.newinterface.R;
 
 public class NearbyExpandListAdapter extends BaseExpandableListAdapter{
     private Context context;
@@ -30,7 +35,6 @@ public class NearbyExpandListAdapter extends BaseExpandableListAdapter{
     public int getChildrenCount(int groupPosition) {
         ArrayList<NearbyBusTimings> chList = nearbyBusStops.get(groupPosition).getArrivalTimings();
         if (chList != null) {
-            Log.e("EXPANDABLE LIST COUNT", String.valueOf(chList.size()));
             return chList.size();
         }else{
             return 0;
@@ -47,7 +51,6 @@ public class NearbyExpandListAdapter extends BaseExpandableListAdapter{
         ArrayList<NearbyBusTimings> chList = nearbyBusStops.get(groupPosition).getArrivalTimings();
         if (chList != null) {
             if (chList.size() != 0) {
-                Log.e("EXPANDABLE LIST CHILD", String.valueOf(chList.size()));
                 return chList.get(childPosition);
             }else{
                 return null;
@@ -107,7 +110,12 @@ public class NearbyExpandListAdapter extends BaseExpandableListAdapter{
 
         if (child != null){
             tv1.setText(child.getBusService());
-            tv2.setText(child.getBusTiming());
+            if (!child.getBusTiming().equals("Not in Operation") && !child.getBusTiming().equals("No data available from LTA")) {
+                String timeRemaining = findBusArrivalTiming(child.getBusTiming());
+                tv2.setText(timeRemaining);
+            }else{
+                tv2.setText(child.getBusTiming());
+            }
         }
         return convertView;
     }
@@ -115,5 +123,47 @@ public class NearbyExpandListAdapter extends BaseExpandableListAdapter{
     @Override
     public boolean isChildSelectable(int groupPosition, int childPosition) {
         return true;
+    }
+
+    private String findBusArrivalTiming(String rawTiming) {
+        String returnFormat = "No data available from LTA";
+        DateFormat date = new SimpleDateFormat("HH:mm");
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT+8:00"));
+        Date currentLocalTime = cal.getTime();
+        String localTime = date.format(currentLocalTime);
+
+        String LocalTimeHour = localTime.substring(0, 2);
+        int localHour = Integer.parseInt(LocalTimeHour);
+        String LocalTimeMinutes = localTime.substring(3, 5);
+        int localMin = Integer.parseInt(LocalTimeMinutes);
+
+        Log.e("NEARBY BUS TIMING", rawTiming);
+        if (rawTiming.length() >= 25) {
+            String time = rawTiming.substring(11, 16);
+            Log.e("NEARBY BUS TIMING", time);
+            String BusTimeHour = time.substring(0, 2);
+            Log.e("BUS HOUR", BusTimeHour);
+            int BusHour = Integer.parseInt(BusTimeHour);
+            String BusTimeMinutes = time.substring(3, 5);
+            Log.e("BUS MINUTES", BusTimeMinutes);
+            int BusMin = Integer.parseInt(BusTimeMinutes);
+
+            if (localHour == BusHour && localMin < BusMin) {
+                int timeDifference = BusMin - localMin;
+                returnFormat = String.valueOf(timeDifference) + " min";
+            } else if (localHour < BusHour) {
+                int timeDifference = (BusMin + (BusHour - localHour) * 60) - localMin;
+                returnFormat = String.valueOf(timeDifference) + " min";
+            } else if (localHour > BusHour) {
+                int timeDifference = (BusMin + ((24 - localHour) + (BusHour)) * 60) - localMin;
+                returnFormat = String.valueOf(timeDifference) + " min";
+            } else if (localHour == BusHour && localMin == BusMin) {
+                returnFormat = "Arriving";
+            } else {
+                returnFormat = "Arriving";
+            }
+        }
+        return returnFormat;
     }
 }

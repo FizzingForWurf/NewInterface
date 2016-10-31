@@ -7,7 +7,6 @@ import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
-import android.support.v7.widget.Toolbar;
 import android.transition.Explode;
 import android.transition.Fade;
 import android.view.MenuItem;
@@ -212,7 +211,7 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
                         } else if (etTitle.getText().toString().equals("")) {
                             Toast.makeText(getApplicationContext(), "Please enter a title before proceeding", Toast.LENGTH_SHORT).show();
                         }else {
-                            DBAdapter dbAdapter = new DBAdapter(AddDestination.this);
+                            AlarmDBAdapter dbAdapter = new AlarmDBAdapter(AddDestination.this);
                             dbAdapter.open();
                             dbAdapter.updateEntry(updateDestinationRowNumber, addTitle, addDestination, finalLatLong, entryRadius);
                             dbAdapter.close();
@@ -231,7 +230,7 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
                         String addTitle = etTitle.getText().toString();
                         String addDestination = tvDestination.getText().toString();
                         try {
-                            DBAdapter inputDestination = new DBAdapter(AddDestination.this);
+                            AlarmDBAdapter inputDestination = new AlarmDBAdapter(AddDestination.this);
                             inputDestination.open();
                             int numRows = inputDestination.getNumberOfRows();
                             inputDestination.insertEntry(numRows + 1, addTitle, addDestination, finalLatLong, entryRadius);

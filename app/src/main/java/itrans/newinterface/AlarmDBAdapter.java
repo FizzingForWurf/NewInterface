@@ -10,7 +10,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.ArrayList;
 
-public class DBAdapter {
+public class AlarmDBAdapter {
     private static final String DATABASE_NAME = "destinationDB.db";
     private static final String DATABASE_TABLE = "alarms";
     private static final int DATABASE_VERSION = 1;
@@ -30,7 +30,7 @@ public class DBAdapter {
             " INTEGER PRIMARY KEY AUTOINCREMENT, " + UNIQUE_ID + " TEXT NOT NULL, " + ENTRY_TITLE + " TEXT NOT NULL, "
             + ENTRY_DESTINATION + " TEXT NOT NULL, " + ENTRY_LATLNG + " TEXT NOT NULL, " + ENTRY_ALERTRADIUS + " TEXT NOT NULL);";
 
-    public DBAdapter(Context _context){
+    public AlarmDBAdapter(Context _context){
         this.context = _context;
     }
 
@@ -111,7 +111,7 @@ public class DBAdapter {
         }
     }
 
-    public DBAdapter open() throws SQLiteException {
+    public AlarmDBAdapter open() throws SQLiteException {
         try {
             dbHelper = new MyDBOpenHelper(context);
             _db = dbHelper.getWritableDatabase();

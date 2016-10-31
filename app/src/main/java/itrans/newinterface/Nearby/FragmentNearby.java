@@ -1,4 +1,4 @@
-package itrans.newinterface;
+package itrans.newinterface.Nearby;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -34,16 +34,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
+import itrans.newinterface.BusNumberDBAdapter;
 import itrans.newinterface.Internet.VolleySingleton;
-
-import static android.R.id.toggle;
+import itrans.newinterface.R;
 
 public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRefreshListener,
         AbsListView.OnScrollListener, ExpandableListView.OnGroupClickListener{
@@ -55,7 +54,7 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
 
     private NearbyExpandListAdapter ExpandableListAdapter;
     private ArrayList<NearbyBusStops> nearbyBusStops = new ArrayList<NearbyBusStops>();
-    ArrayList<NearbyBusTimings> arrivalTimings = new ArrayList<>();
+    private ArrayList<NearbyBusTimings> arrivalTimings = new ArrayList<>();
 
     private ProgressBar searchingProgress;
     private ExpandableListView lvNearby;
@@ -137,18 +136,19 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
     @Override
     public boolean onGroupClick(ExpandableListView parent, View v, int groupPosition, long id) {
         if(!parent.isGroupExpanded(groupPosition)){
-            // Do your Staff
+            //Expanded group
             String busStopId = nearbyBusStops.get(groupPosition).getBusStopID();
-            Log.e("GROUP EXPAND", String.valueOf(groupPosition) + ", " + busStopId);
-            arrivalTimings.clear();
             findBusArrivalTimings(groupPosition, busStopId);
+        }else{
+            //Collapsed group
+            nearbyBusStops.get(groupPosition).setArrivalTimings(new ArrayList<NearbyBusTimings>());
         }
         return false;
     }
 
     @Override
     public void onRefresh() {
-        if (!locationManager.isProviderEnabled( LocationManager.GPS_PROVIDER)) {
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             //check whether gps is enabled
             final AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
             builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
@@ -171,6 +171,7 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
             requestForGPSUpdates();
             if (mLocation != null){
                 nearbyBusStops.clear();
+                Toast.makeText(getContext(), "Finding...", Toast.LENGTH_SHORT).show();
                 findNearby();
             }else{
                 //this means that location cannot be detected and show message
@@ -186,6 +187,7 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
+                        arrivalTimings = new ArrayList<>();
                         String eta;
                         try {
                             JSONArray jsonArray = response.getJSONArray("Services");
@@ -193,13 +195,19 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                                 JSONObject services = jsonArray.getJSONObject(i);
                                 String busNo = services.getString("ServiceNo");
                                 String inService = services.getString("Status");
-                                if(inService.equals("In Operation")) {
-                                    JSONObject nextBus = services.getJSONObject("NextBus");
-                                    eta = nextBus.getString("EstimatedArrival");
-                                    String wheelC = nextBus.getString("Feature");
-                                    String load = nextBus.getString("Load");
-                                }else{
-                                    eta = "Not in Operation";
+                                switch (inService) {
+                                    case "In Operation":
+                                        JSONObject nextBus = services.getJSONObject("NextBus");
+                                        eta = nextBus.getString("EstimatedArrival");
+                                        //String wheelC = nextBus.getString("Feature");
+                                        //String load = nextBus.getString("Load");
+                                        break;
+                                    case "Not In Operation":
+                                        eta = "Not in Operation";
+                                        break;
+                                    default:
+                                        eta = "No data available from LTA";
+                                        break;
                                 }
                                 NearbyBusTimings timings = new NearbyBusTimings();
                                 timings.setBusService(busNo);
@@ -211,10 +219,7 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                                 arrivalTimings.add(timings);
                             }
                             nearbyBusStops.get(groupPosition).setArrivalTimings(arrivalTimings);
-                            Log.e("CHILD UPDATE", String.valueOf(groupPosition));
                             ExpandableListAdapter.notifyDataSetChanged();
-                            //lvNearby.expandGroup(groupPosition);
-                            //nearbyBusStops.get(groupPosition).setArrivalTimings(null);
                         } catch (JSONException e) {
                             e.printStackTrace();
                             Toast.makeText(getContext(), "Error", Toast.LENGTH_LONG).show();
@@ -225,7 +230,8 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Log.e("VOLLEY", "ERROR");
-                        Toast.makeText(getContext(), "That did not work:(", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(), "Please ensure that you have stable network connection and try again.", Toast.LENGTH_LONG).show();
+                        lvNearby.collapseGroup(groupPosition);
                     }
                 }) {
             @Override
@@ -243,7 +249,6 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
     private void findNearby(){
         tvNearbyError.setVisibility(View.INVISIBLE);
         lvNearby.setVisibility(View.VISIBLE);
-        Toast.makeText(getContext(), "Finding...", Toast.LENGTH_SHORT).show();
         Thread thread = new Thread(){
             public void run(){
                 BusNumberDBAdapter db = new BusNumberDBAdapter(getContext());
@@ -336,7 +341,7 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                 mLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
             }
 
-            locationManager.requestLocationUpdates(provider, 5000, 0, locationListener);
+            locationManager.requestLocationUpdates(provider, 3000, 0, locationListener);
         } catch (SecurityException e) {
             e.printStackTrace();
             Toast.makeText(getContext(), "Cannot detect...", Toast.LENGTH_SHORT).show();
@@ -350,7 +355,9 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
         requestForGPSUpdates();
         if (mLocation != null){
             if (nearbyBusStops.isEmpty() && !nearbySwipe.isRefreshing()) {
+                Toast.makeText(getContext(), "Finding...", Toast.LENGTH_LONG).show();
                 searchingProgress.setVisibility(View.VISIBLE);
+                nearbyBusStops.clear();
                 findNearby();
             }
         }else{
@@ -363,7 +370,6 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
     @Override
     public void onPause() {
         super.onPause();
-        Toast.makeText(getContext(), "onPause called", Toast.LENGTH_SHORT).show();
         if (locationManager != null) {
             if (ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) !=
                     PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getContext(),

@@ -1,4 +1,4 @@
-package itrans.newinterface;
+package itrans.newinterface.Nearby;
 
 public class NearbyBusTimings {
     private String busService;

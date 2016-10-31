@@ -51,7 +51,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <activity android:name=".AddDestination"></activity>
+        <activity android:name=".AddDestination" />
+        <activity
+            android:name=".Nearby.NearbyMap"
+            android:theme="@style/AppTheme.NoActionBar.TranslucentStatusBar">
+
+        </activity>
     </application>
 
 </manifest>
