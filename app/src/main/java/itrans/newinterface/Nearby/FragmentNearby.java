@@ -1,23 +1,31 @@
 package itrans.newinterface.Nearby;
 
+import android.Manifest;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.design.widget.CoordinatorLayout;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.ExpandableListView;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,86 +36,86 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResult;
+import com.google.android.gms.location.LocationSettingsStates;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.maps.model.LatLng;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 
-import itrans.newinterface.BusNumberDBAdapter;
 import itrans.newinterface.Internet.VolleySingleton;
 import itrans.newinterface.R;
 
-public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRefreshListener,
-        AbsListView.OnScrollListener, ExpandableListView.OnGroupClickListener{
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRefreshListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener,
+        AbsListView.OnScrollListener, ExpandableListView.OnGroupClickListener, ExpandableListView.OnChildClickListener {
+    public static final int GPS_REQUEST_CODE = 50;
 
-    private String mParam1;
-    private String mParam2;
-
-    private NearbyExpandListAdapter ExpandableListAdapter;
+    private NearbyExpandListAdapter adapter;
     private ArrayList<NearbyBusStops> nearbyBusStops = new ArrayList<NearbyBusStops>();
-    private ArrayList<NearbyBusTimings> arrivalTimings = new ArrayList<>();
+    private ArrayList<NearbyBusTimings> arrivalTimings = new ArrayList<NearbyBusTimings>();
+    private ArrayList<Integer> distanceArray = new ArrayList<>();
 
     private ProgressBar searchingProgress;
-    private ExpandableListView lvNearby;
+    private AnimatedExpandableListView lvNearby;
     private TextView tvNearbyError;
     private SwipeRefreshLayout nearbySwipe;
+    private CoordinatorLayout coordinatorLayout;
 
-    private LocationManager locationManager;
     private Location mLocation;
     private LatLng mLatLng;
+    private GoogleApiClient mGoogleApiClient;
+    private LocationRequest mLocationRequest;
 
     private VolleySingleton volleySingleton;
     private RequestQueue requestQueue;
+
+    private boolean stopFindingNearby = false;
+    private boolean isViewShown = true;
 
     public FragmentNearby() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment FragmentNearby.
-     */
     // TODO: Rename and change types and number of parameters
-    public static FragmentNearby newInstance(String param1, String param2) {
-        FragmentNearby fragment = new FragmentNearby();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
+    public static FragmentNearby newInstance() {
+        return new FragmentNearby();
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
+        Log.e("OnCreateView", "OnCreateView Called");
         View v = inflater.inflate(R.layout.fragment_nearby, container, false);
         searchingProgress = (ProgressBar) v.findViewById(R.id.searchingProgress);
-        lvNearby = (ExpandableListView) v.findViewById(R.id.lvNearby);
+        lvNearby = (AnimatedExpandableListView) v.findViewById(R.id.lvNearby);
         nearbySwipe = (SwipeRefreshLayout) v.findViewById(R.id.nearbySwipe);
         tvNearbyError = (TextView) v.findViewById(R.id.tvNearbyError);
+        coordinatorLayout = (CoordinatorLayout) v.findViewById(R.id.nearbyParent);
 
         tvNearbyError.setVisibility(View.INVISIBLE);
         searchingProgress.setVisibility(View.INVISIBLE);
@@ -116,10 +124,45 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
         nearbySwipe.setOnRefreshListener(this);
         lvNearby.setOnScrollListener(this);
         lvNearby.setOnGroupClickListener(this);
+        lvNearby.setOnChildClickListener(this);
 
         volleySingleton = VolleySingleton.getInstance();
         requestQueue = volleySingleton.getRequestQueue();
         return v;
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        if (isVisibleToUser) {
+            Log.e("TEST", "VISIBLE");
+            if (getView() != null) { //beside fragment
+                isViewShown = true;
+                if (nearbyBusStops.isEmpty() && !nearbySwipe.isRefreshing()) {
+                    if (mGoogleApiClient == null) {
+                        buildGoogleApiClient();
+                    }
+                    if (!mGoogleApiClient.isConnected()) {
+                        Log.e("TEST", "setUserVisibilityHint OnConnect");
+                        mGoogleApiClient.connect();
+                    }
+                    //Toast.makeText(getContext(), "iTrans is enable to determine your location. Please swipe down to try again.", Toast.LENGTH_LONG).show();
+                }
+            } else {
+                isViewShown = false;
+            }
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        Log.e("TEST", "OnDestroyView Called!");
+        stopFindingNearby = true;
+        super.onDestroyView();
+    }
+
+    private boolean hasLocationPermissions() {
+        int permissionCheck = ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION);
+        return permissionCheck == PackageManager.PERMISSION_GRANTED;
     }
 
     @Override
@@ -134,64 +177,432 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
     }
 
     @Override
-    public boolean onGroupClick(ExpandableListView parent, View v, int groupPosition, long id) {
-        if(!parent.isGroupExpanded(groupPosition)){
-            //Expanded group
-            String busStopId = nearbyBusStops.get(groupPosition).getBusStopID();
-            findBusArrivalTimings(groupPosition, busStopId);
-        }else{
-            //Collapsed group
-            nearbyBusStops.get(groupPosition).setArrivalTimings(new ArrayList<NearbyBusTimings>());
-        }
-        return false;
-    }
-
-    @Override
     public void onRefresh() {
-        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            //check whether gps is enabled
-            final AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-            builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
-                    .setCancelable(false)
-                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                        public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-                            startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                        }
-                    })
-                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                        public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-                            dialog.cancel();
-                        }
-                    });
-            final AlertDialog alert = builder.create();
-            alert.show();
-            nearbySwipe.setRefreshing(false);
-        }else{
-            //if gps is enabled already
-            requestForGPSUpdates();
-            if (mLocation != null){
-                nearbyBusStops.clear();
-                Toast.makeText(getContext(), "Finding...", Toast.LENGTH_SHORT).show();
-                findNearby();
-            }else{
-                //this means that location cannot be detected and show message
-                tvNearbyError.setVisibility(View.VISIBLE);
-                lvNearby.setVisibility(View.INVISIBLE);
-                nearbySwipe.setRefreshing(false);
+        //check whether gps is enabled
+        if (hasLocationPermissions()) {
+            if (mGoogleApiClient != null) {
+                if (mGoogleApiClient.isConnected()) {
+                    checkGPSEnabled();
+                } else {
+                    mGoogleApiClient.connect();
+                }
+            } else {
+                buildGoogleApiClient();
+                mGoogleApiClient.connect();
             }
         }
     }
 
-    private void findBusArrivalTimings(final int groupPosition, String busStopId){
-        JsonObjectRequest BusStopRequest = new JsonObjectRequest(Request.Method.GET, "http://datamall2.mytransport.sg/ltaodataservice/BusArrival?BusStopID="  +busStopId + "&SST=True", null,
+
+    @Override
+    public void onResume() {
+        Log.e("OnResume", "OnResume Called");
+        if (hasLocationPermissions()) {
+            SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("LOCATIONPERMISSION", false);
+            editor.apply();
+
+            if (nearbyBusStops != null) {
+                adapter = new NearbyExpandListAdapter(getContext());
+                adapter.setData(nearbyBusStops);
+                lvNearby.setAdapter(adapter);
+            }
+
+            if (!isViewShown) {
+                if (nearbyBusStops.isEmpty() && !nearbySwipe.isRefreshing()) {
+                    if (mGoogleApiClient != null) {
+                        if (mGoogleApiClient.isConnected()) {
+                            final LocationManager manager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+                            if (manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                                startLocationUpdates();
+                                if (mLocation == null) {
+                                    tvNearbyError.setVisibility(View.VISIBLE);
+                                }
+                            }
+                        } else {
+                            mGoogleApiClient.connect();
+                        }
+                    } else {
+                        buildGoogleApiClient();
+                        mGoogleApiClient.connect();
+                    }
+                }
+            }
+
+            Log.e("LOCATIONREQUEST", String.valueOf(prefs.getBoolean("LOCATION REQUEST", false)));
+            if (prefs.getBoolean("LOCATION REQUEST", false)) {
+                Log.e("LOCATIONACCEPTED", String.valueOf(prefs.getBoolean("LOCATION ACCEPTED", false)));
+                if (prefs.getBoolean("LOCATION ACCEPTED", false)) {
+                    if (nearbyBusStops.isEmpty() && !nearbySwipe.isRefreshing()) {
+                        if (mGoogleApiClient != null) {
+                            if (mGoogleApiClient.isConnected()) {
+                                final LocationManager manager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+                                if (manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                                    startLocationUpdates();
+                                    if (mLocation == null) {
+                                        tvNearbyError.setVisibility(View.VISIBLE);
+                                    }
+                                }
+                            } else {
+                                mGoogleApiClient.connect();
+                            }
+                        } else {
+                            buildGoogleApiClient();
+                            mGoogleApiClient.connect();
+                        }
+                    }
+                } else {
+                    tvNearbyError.setVisibility(View.VISIBLE);
+                    lvNearby.setVisibility(View.INVISIBLE);
+                    searchingProgress.setVisibility(View.INVISIBLE);
+                    nearbySwipe.setEnabled(true);
+                    nearbySwipe.setRefreshing(false);
+                }
+                editor.putBoolean("LOCATION REQUEST", false);
+                editor.apply();
+            }
+        } else {
+            SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
+            boolean hasCompletedSetUp = prefs.getBoolean("LOCATIONPERMISSION", true);
+            Log.e("PERMISSION OnResume", "BOOLEAN: " + String.valueOf(hasCompletedSetUp));
+            if (!hasCompletedSetUp) {
+                Snackbar snackbar = Snackbar
+                        .make(coordinatorLayout, "Allow location access in permission settings to find nearby bus stops. ", Snackbar.LENGTH_INDEFINITE)
+                        .setAction("Settings", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Intent intent = new Intent();
+                                intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                                Uri uri = Uri.fromParts("package", getActivity().getPackageName(), null);
+                                intent.setData(uri);
+                                startActivity(intent);
+                            }
+                        });
+                //View snackbarView = snackbar.getView();
+                snackbar.show();
+            }
+        }
+        super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        Log.e("TEST", "OnPause called");
+        SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean("NEARBYPAGE", false);
+        editor.apply();
+
+        if (mGoogleApiClient != null) {
+            if (mGoogleApiClient.isConnected()) {
+                stopLocationUpdates();
+            }
+        }
+        super.onPause();
+    }
+
+    @Override
+    public void onStop() {
+        Log.e("TEST", "OnStop called");
+        if (mGoogleApiClient != null) {
+            if (mGoogleApiClient.isConnected()) {
+                mGoogleApiClient.disconnect();
+            }
+        }
+        super.onStop();
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        Log.e("GOOGLE LOCAPI CONNECTED", "CONNECTED");
+        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (mLocation != null) {
+            mLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+        }
+
+        createLocationRequest();
+        if (hasLocationPermissions()) {
+            checkGPSEnabled();
+        }
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
+
+    protected synchronized void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(getContext())
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+    }
+
+    protected void createLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(10000);
+        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
+
+    private void checkGPSEnabled() {
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
+        builder.setAlwaysShow(true);
+        final PendingResult<LocationSettingsResult> result =
+                LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient, builder.build());
+
+        result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
+            @Override
+            public void onResult(@NonNull LocationSettingsResult result) {
+                final Status status = result.getStatus();
+                final LocationSettingsStates test = result.getLocationSettingsStates();
+                switch (status.getStatusCode()) {
+                    case LocationSettingsStatusCodes.SUCCESS:
+                        // All location settings are satisfied. The client can
+                        // initialize location requests here.
+                        if (mGoogleApiClient != null) {
+                            if (mGoogleApiClient.isConnected()) {
+                                startLocationUpdates();
+                            }
+                        }
+                        if (mLocation != null) {
+                            if (nearbyBusStops != null) {
+                                if (nearbyBusStops.isEmpty() && !nearbySwipe.isRefreshing()) { //this means first enter view
+                                    searchingProgress.setVisibility(View.VISIBLE);
+                                    tvNearbyError.setVisibility(View.INVISIBLE);
+                                    lvNearby.setVisibility(View.INVISIBLE);
+                                    nearbySwipe.setEnabled(false);
+                                    stopFindingNearby = false;
+                                    findNearby();
+                                    Toast.makeText(getContext(), "Finding...", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    tvNearbyError.setVisibility(View.INVISIBLE);
+                                    searchingProgress.setVisibility(View.INVISIBLE);
+                                    lvNearby.setVisibility(View.INVISIBLE);
+                                    stopFindingNearby = false;
+                                    findNearby();
+                                    Toast.makeText(getContext(), "Finding...", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        } else {
+                            tvNearbyError.setVisibility(View.VISIBLE);
+                            lvNearby.setVisibility(View.INVISIBLE);
+                            searchingProgress.setVisibility(View.INVISIBLE);
+                            nearbySwipe.setRefreshing(false);
+                        }
+                        break;
+                    case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                        // Location settings are not satisfied, but this can be fixed
+                        // by showing the user a dialog.
+                        try {
+                            SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.putBoolean("LOCATION REQUEST", true);
+                            editor.apply();
+
+                            nearbySwipe.setRefreshing(false);
+                            status.startResolutionForResult(getActivity(), GPS_REQUEST_CODE);
+                        } catch (IntentSender.SendIntentException e) {
+                            // Ignore the error.
+                        }
+                        break;
+                    case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                        // Location settings are not satisfied. However, we have no way
+                        // to fix the settings so we won't show the dialog.
+                        break;
+                }
+            }
+        });
+    }
+
+    protected void startLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        mLocation = location;
+        mLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+    }
+
+    protected void stopLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+    }
+
+    @Override
+    public boolean onGroupClick(ExpandableListView parent, View v, int groupPosition, long id) {
+        if (!parent.isGroupExpanded(groupPosition)) {
+            //Expanded group
+            nearbyBusStops.get(groupPosition).setProximity(-100);
+            adapter.notifyDataSetChanged();
+            String busStopId = nearbyBusStops.get(groupPosition).getBusStopID();
+            findBusArrivalTimings(groupPosition, busStopId);
+        } else {
+            //Collapsed group
+            lvNearby.collapseGroupWithAnimation(groupPosition);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onChildClick(ExpandableListView expandableListView, View view, final int groupPosition,
+                                int childPosition, long id) {
+        ArrayList<NearbyBusTimings> chList = nearbyBusStops.get(groupPosition).getArrivalTimings();
+        if (chList.size() <= childPosition) {
+            final ImageView nearbySaveStop = (ImageView) view.findViewById(R.id.nearbySaveStop);
+            ImageView nearbyRefreshTimings = (ImageView) view.findViewById(R.id.nearbyRefreshTimings);
+
+            nearbySaveStop.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Toast.makeText(getContext(), "SAVE STOP CLICKED", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            nearbyRefreshTimings.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Toast.makeText(getContext(), "REFRESH CLICKED", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }else{
+            view.setOnClickListener(null);
+        }
+        return false;
+    }
+
+    private void findNearby() {
+        tvNearbyError.setVisibility(View.INVISIBLE);
+        distanceArray.clear();
+        Thread thread = new Thread() {
+            public void run() {
+                nearbyBusStops.clear();
+
+                InputStream busData = getResources().openRawResource(R.raw.bus_stop_data);
+                Scanner scBusData = new Scanner(busData);
+                int counter = 1;
+                String name = "";
+                String road = "";
+                String id = "";
+                while (scBusData.hasNextLine()) {
+                    if (!stopFindingNearby) {
+                        String data = scBusData.nextLine();
+                        if (data.equals("")) {
+                            counter = 1;
+                            name = "";
+                            road = "";
+                            id = "";
+                        } else {
+                            switch (counter) {
+                                case 1: //bus stop id
+                                    if (data.length() < 5) {
+                                        data = "0" + data;
+                                    }
+                                    id = data;
+                                    break;
+                                case 2: //bus stop name
+                                    name = data;
+                                    break;
+                                case 3: //bus stop road
+                                    road = data;
+                                    break;
+                                case 4: //coordinates
+                                    String withoutBraces = data.substring(data.indexOf("(") + 1, data.indexOf(")"));
+                                    String[] latlong = withoutBraces.split(",");
+                                    double latitude = Double.parseDouble(latlong[0]);
+                                    double longitude = Double.parseDouble(latlong[1]);
+                                    Location busStop = new Location("BUS Stop LOCATION");
+                                    busStop.setLatitude(latitude);
+                                    busStop.setLongitude(longitude);
+
+                                    double latDifference;
+                                    double lonDifference;
+                                    if (latitude > mLocation.getLatitude()) {
+                                        latDifference = latitude - mLocation.getLatitude();
+                                    } else {
+                                        latDifference = mLocation.getLatitude() - latitude;
+                                    }
+
+                                    if (longitude > mLocation.getLongitude()) {
+                                        lonDifference = longitude - mLocation.getLongitude();
+                                    } else {
+                                        lonDifference = mLocation.getLongitude() - longitude;
+                                    }
+                                    if (latDifference + lonDifference <= 0.01202981126) {
+                                        NearbyBusStops nearbyBusStops1 = new NearbyBusStops();
+                                        nearbyBusStops1.setBusStopID(id);
+                                        nearbyBusStops1.setBusStopName(name);
+                                        nearbyBusStops1.setBusStopRoad(road);
+                                        nearbyBusStops1.setProximity((int) mLocation.distanceTo(busStop));
+                                        nearbyBusStops1.setArrivalTimings(new ArrayList<NearbyBusTimings>());
+
+                                        nearbyBusStops.add(nearbyBusStops1);
+                                        distanceArray.add((int) mLocation.distanceTo(busStop));
+                                    }
+                                    break;
+                            }
+                            counter++;
+                        }
+                    }
+                }
+                Log.e("NEARBY", String.valueOf(nearbyBusStops.size()));
+                Collections.sort(distanceArray);
+
+                if (!stopFindingNearby) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            nearbySwipe.setEnabled(true);
+                            nearbySwipe.setRefreshing(false);
+
+                            Collections.sort(nearbyBusStops, new Comparator<NearbyBusStops>() {
+                                @Override
+                                public int compare(NearbyBusStops nearbyBusStops, NearbyBusStops t1) {
+                                    return nearbyBusStops.getProximity() - t1.getProximity();
+                                }
+                            });
+                            adapter = new NearbyExpandListAdapter(getContext());
+                            adapter.setData(nearbyBusStops);
+                            lvNearby.setAdapter(adapter);
+
+                            tvNearbyError.setVisibility(View.INVISIBLE);
+                            searchingProgress.setVisibility(View.INVISIBLE);
+                            lvNearby.setVisibility(View.VISIBLE);
+                        }
+                    });
+                }
+            }
+        };
+        thread.start();
+    }
+
+    private void findBusArrivalTimings(final int groupPosition, String busStopId) {
+        arrivalTimings = new ArrayList<NearbyBusTimings>();
+        JsonObjectRequest BusStopRequest = new JsonObjectRequest(Request.Method.GET, "http://datamall2.mytransport.sg/ltaodataservice/BusArrival?BusStopID=" + busStopId + "&SST=True", null,
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
-                        arrivalTimings = new ArrayList<>();
                         String eta;
+                        String load;
                         try {
                             JSONArray jsonArray = response.getJSONArray("Services");
-                            for (int i = 0; i < jsonArray.length(); i++){
+                            for (int i = 0; i < jsonArray.length(); i++) {
                                 JSONObject services = jsonArray.getJSONObject(i);
                                 String busNo = services.getString("ServiceNo");
                                 String inService = services.getString("Status");
@@ -199,39 +610,45 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                                     case "In Operation":
                                         JSONObject nextBus = services.getJSONObject("NextBus");
                                         eta = nextBus.getString("EstimatedArrival");
+                                        load = nextBus.getString("Load");
                                         //String wheelC = nextBus.getString("Feature");
-                                        //String load = nextBus.getString("Load");
                                         break;
                                     case "Not In Operation":
                                         eta = "Not in Operation";
+                                        load = "";
                                         break;
                                     default:
                                         eta = "No data available from LTA";
+                                        load = "";
                                         break;
                                 }
                                 NearbyBusTimings timings = new NearbyBusTimings();
                                 timings.setBusService(busNo);
+                                timings.setBusLoad(load);
                                 if (eta != null) {
                                     timings.setBusTiming(eta);
-                                }else{
+                                } else {
                                     timings.setBusTiming("Not available");
                                 }
                                 arrivalTimings.add(timings);
                             }
                             nearbyBusStops.get(groupPosition).setArrivalTimings(arrivalTimings);
-                            ExpandableListAdapter.notifyDataSetChanged();
                         } catch (JSONException e) {
                             e.printStackTrace();
                             Toast.makeText(getContext(), "Error", Toast.LENGTH_LONG).show();
                         }
+                        nearbyBusStops.get(groupPosition).setProximity(distanceArray.get(groupPosition));
+                        lvNearby.expandGroupWithAnimation(groupPosition);
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Log.e("VOLLEY", "ERROR");
+                        nearbyBusStops.get(groupPosition).setProximity(distanceArray.get(groupPosition));
+                        adapter.notifyDataSetChanged();
+
                         Toast.makeText(getContext(), "Please ensure that you have stable network connection and try again.", Toast.LENGTH_LONG).show();
-                        lvNearby.collapseGroup(groupPosition);
                     }
                 }) {
             @Override
@@ -245,165 +662,4 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
         };
         requestQueue.add(BusStopRequest);
     }
-
-    private void findNearby(){
-        tvNearbyError.setVisibility(View.INVISIBLE);
-        lvNearby.setVisibility(View.VISIBLE);
-        Thread thread = new Thread(){
-            public void run(){
-                BusNumberDBAdapter db = new BusNumberDBAdapter(getContext());
-                db.open();
-                for (int a = 0; a < db.getNumberOfRows(); a++){
-                    double latDifference;
-                    double lonDifference;
-
-                    String latlng = db.getCoordinates(a + 1);
-                    Log.e("TEST", String.valueOf(latlng));
-                    String noBrace = latlng.substring(latlng.indexOf("(") + 1, latlng.indexOf(")"));
-                    String[] latlong = noBrace.split( ",");
-                    LatLng busStop = new LatLng(Double.parseDouble(latlong[0]), Double.parseDouble(latlong[1]));
-
-                    if (busStop.latitude > mLatLng.latitude){
-                        latDifference = busStop.latitude - mLatLng.latitude;
-                    }else{
-                        latDifference = mLatLng.latitude - busStop.latitude;
-                    }
-
-                    if (busStop.longitude > mLatLng.longitude){
-                        lonDifference = busStop.longitude - mLatLng.longitude;
-                    }else{
-                        lonDifference = mLatLng.longitude - busStop.longitude;
-                    }
-
-                    if (latDifference + lonDifference <= 0.01302981126){
-                        //this means that the bus stop is within the radius...
-                        String busStopName = db.getName(a + 1);
-                        String busStopId = db.getID(a + 1);
-                        String busStopRoad = db.getRoad(a + 1);
-                        Location busStopLocation = new Location("Bus Stop");
-                        busStopLocation.setLatitude(busStop.latitude);
-                        busStopLocation.setLongitude(busStop.longitude);
-                        int distance = (int) busStopLocation.distanceTo(mLocation);
-                        Log.e("NEARBY", busStopName + ", " + busStopId + ", " + String.valueOf(distance));
-
-                        NearbyBusStops nearbyBusStops1 = new NearbyBusStops();
-                        nearbyBusStops1.setBusStopName(busStopName);
-                        nearbyBusStops1.setBusStopRoad(busStopRoad);
-                        nearbyBusStops1.setBusStopID(busStopId);
-                        nearbyBusStops1.setProximity(distance);
-                        nearbyBusStops1.setArrivalTimings(new ArrayList<NearbyBusTimings>());
-
-                        nearbyBusStops.add(nearbyBusStops1);
-                    }
-                }
-                db.close();
-                Log.e("NEARBY", String.valueOf(nearbyBusStops.size()));
-
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (nearbySwipe.isRefreshing())
-                            nearbySwipe.setRefreshing(false);
-                        searchingProgress.setVisibility(View.INVISIBLE);
-                        populateExpandableListView();
-                    }
-                });
-            }
-        };
-        thread.start();
-    }
-
-    private void populateExpandableListView(){
-        Collections.sort(nearbyBusStops, new Comparator<NearbyBusStops>() {
-            @Override
-            public int compare(NearbyBusStops nearbyBusStops, NearbyBusStops t1) {
-                return nearbyBusStops.getProximity() - t1.getProximity();
-            }
-        });
-        ExpandableListAdapter = new NearbyExpandListAdapter(getContext(), nearbyBusStops);
-        lvNearby.setAdapter(ExpandableListAdapter);
-    }
-
-    private void requestForGPSUpdates(){
-        locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
-
-        Criteria c = new Criteria();
-        c.setAccuracy(Criteria.ACCURACY_FINE);
-        c.setAltitudeRequired(false);
-        c.setBearingRequired(false);
-        c.setCostAllowed(true);
-        c.setPowerRequirement(Criteria.POWER_LOW);
-
-        try {
-            String provider = locationManager.getBestProvider(c, true);
-            mLocation = locationManager.getLastKnownLocation(provider);
-            if (mLocation != null) {
-                mLatLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
-            }
-
-            locationManager.requestLocationUpdates(provider, 3000, 0, locationListener);
-        } catch (SecurityException e) {
-            e.printStackTrace();
-            Toast.makeText(getContext(), "Cannot detect...", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        populateExpandableListView();
-        requestForGPSUpdates();
-        if (mLocation != null){
-            if (nearbyBusStops.isEmpty() && !nearbySwipe.isRefreshing()) {
-                Toast.makeText(getContext(), "Finding...", Toast.LENGTH_LONG).show();
-                searchingProgress.setVisibility(View.VISIBLE);
-                nearbyBusStops.clear();
-                findNearby();
-            }
-        }else{
-            tvNearbyError.setVisibility(View.VISIBLE);
-            lvNearby.setVisibility(View.INVISIBLE);
-            nearbySwipe.setRefreshing(false);
-        }
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        if (locationManager != null) {
-            if (ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) !=
-                    PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getContext(),
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-            locationManager.removeUpdates(locationListener);
-        }
-        if (locationManager == null){
-            Toast.makeText(getContext(), "locationManager is null", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private final android.location.LocationListener locationListener = new android.location.LocationListener() {
-
-        @Override
-        public void onLocationChanged(Location location) {
-            mLocation = location;
-            mLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-        }
-
-        @Override
-        public void onStatusChanged(String s, int i, Bundle bundle) {
-
-        }
-
-        @Override
-        public void onProviderEnabled(String s) {
-
-        }
-
-        @Override
-        public void onProviderDisabled(String s) {
-
-        }
-    };
 }

@@ -77,6 +77,22 @@ public class BusServiceDBAdapter {
         return _db.insert(DATABASE_TABLE, null, newEntryValues);
     }
 
+    public void updateDirectionOneEntry(int position, String busStops){
+        ContentValues updatedValues = new ContentValues();
+
+        updatedValues.put(BUS_DIRECTION_ONE, busStops);
+
+        _db.update(DATABASE_TABLE, updatedValues, KEY_ID + "=" + position, null);
+    }
+
+    public void updateDirectionTwoEntry(int position, String busStops){
+        ContentValues updatedValues = new ContentValues();
+
+        updatedValues.put(BUS_DIRECTION_TWO, busStops);
+
+        _db.update(DATABASE_TABLE, updatedValues, KEY_ID + "=" + position, null);
+    }
+
     public boolean removeEntry(long _rowIndex){
         if(_db.delete(DATABASE_TABLE, KEY_ID + "-" + _rowIndex, null) <= 0){
             return false;
@@ -136,6 +152,17 @@ public class BusServiceDBAdapter {
         String[] columns = {KEY_ID, BUS_NO, BUS_DIRECTION_ONE, BUS_DIRECTION_TWO};
         Cursor c = _db.query(DATABASE_TABLE, columns, KEY_ID + " = " + position, null, null, null, null);
         int iTWO = c.getColumnIndex(BUS_DIRECTION_TWO);
+        if (c != null){
+            c.moveToFirst();
+            return c.getString(iTWO);
+        }
+        return null;
+    }
+
+    public String getBusService(int position){
+        String[] columns = {KEY_ID, BUS_NO, BUS_DIRECTION_ONE, BUS_DIRECTION_TWO};
+        Cursor c = _db.query(DATABASE_TABLE, columns, KEY_ID + " = " + position, null, null, null, null);
+        int iTWO = c.getColumnIndex(BUS_NO);
         if (c != null){
             c.moveToFirst();
             return c.getString(iTWO);

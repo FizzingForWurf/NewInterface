@@ -1,15 +1,22 @@
 package itrans.newinterface;
 
+import android.Manifest;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
@@ -17,17 +24,28 @@ import android.support.v7.widget.Toolbar;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ImageSpan;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import itrans.newinterface.Alarm.AddDestination;
+import itrans.newinterface.Alarm.FragmentAlarm;
+import itrans.newinterface.Bookmarks.FragmentBookmarks;
 import itrans.newinterface.Nearby.FragmentNearby;
 import itrans.newinterface.Nearby.NearbyMap;
+import itrans.newinterface.Settings.SettingsActivity;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int PERMISSIONS_REQUEST_FINE_LOCATION = 100;
+
     private SectionsPagerAdapter mSectionsPagerAdapter;
     private ViewPager mViewPager;
+    private FloatingActionButton viewMapFab;
+
+    private SharedPreferences prefs;
+    private SharedPreferences.Editor editor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,20 +58,28 @@ public class MainActivity extends AppCompatActivity {
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
         mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
+        prefs = getPreferences(Context.MODE_PRIVATE);
+        editor = prefs.edit();
+        editor.putBoolean("NEARBYPAGE", false);
+        editor.apply();
 
         // Set up the ViewPager with the sections adapter.
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
+        mViewPager.setOffscreenPageLimit(1);
 
         final TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(mViewPager);
-        tabLayout.getTabAt(0).setIcon(R.drawable.ic_home_white_24dp);
-        tabLayout.getTabAt(1).setIcon(R.drawable.ic_access_alarm_blue_24dp);
-        tabLayout.getTabAt(2).setIcon(R.drawable.ic_bookmark_blue_24dp);
-        tabLayout.getTabAt(3).setIcon(R.drawable.ic_room_blue_24dp);
+
+        tabLayout.getTabAt(0).setIcon(R.drawable.ic_access_alarm_white_24dp);
+        tabLayout.getTabAt(0).setText("Alarms");
+        tabLayout.getTabAt(1).setIcon(R.drawable.ic_bookmark_blue_24dp);
+        tabLayout.getTabAt(1).setText("Bookmarks");
+        tabLayout.getTabAt(2).setIcon(R.drawable.ic_room_blue_24dp);
+        tabLayout.getTabAt(2).setText("Nearby");
 
         final FloatingActionButton AddDestinationFab = (FloatingActionButton) findViewById(R.id.AddDestinationFab);
-        AddDestinationFab.hide();
+        AddDestinationFab.show();
         AddDestinationFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -62,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        final FloatingActionButton viewMapFab = (FloatingActionButton) findViewById(R.id.ViewMapFab);
+        viewMapFab = (FloatingActionButton) findViewById(R.id.ViewMapFab);
         viewMapFab.hide();
         viewMapFab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -81,41 +107,42 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageSelected(int position) {
                 switch (position) {
-                    case 0:
+                    case -1:
                         setTitle("iTrans");
                         AddDestinationFab.hide();
                         viewMapFab.hide();
-                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_home_white_24dp);
-                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_access_alarm_blue_24dp);
-                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_bookmark_blue_24dp);
-                        tabLayout.getTabAt(3).setIcon(R.drawable.ic_room_blue_24dp);
+                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_access_alarm_white_24dp);
+                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_bookmark_blue_24dp);
+                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_room_blue_24dp);
                         break;
-                    case 1:
-                        setTitle("Alarms");
+                    case 0:
                         AddDestinationFab.show();
                         viewMapFab.hide();
-                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_home_blue_24dp);
-                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_access_alarm_white_24dp);
-                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_bookmark_blue_24dp);
-                        tabLayout.getTabAt(3).setIcon(R.drawable.ic_room_blue_24dp);
+                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_access_alarm_white_24dp);
+                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_bookmark_blue_24dp);
+                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_room_blue_24dp);
                         break;
-                    case 2:
-                        setTitle("Bookmarks");
+                    case 1:
                         AddDestinationFab.hide();
                         viewMapFab.hide();
-                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_home_blue_24dp);
-                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_access_alarm_blue_24dp);
-                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_bookmark_white_24dp);
-                        tabLayout.getTabAt(3).setIcon(R.drawable.ic_room_blue_24dp);
+
+                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_access_alarm_blue_24dp);
+                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_bookmark_white_24dp);
+                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_room_blue_24dp);
                         break;
-                    case 3:
-                        setTitle("Nearby");
+                    case 2:
                         AddDestinationFab.hide();
-                        viewMapFab.show();
-                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_home_blue_24dp);
-                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_access_alarm_blue_24dp);
-                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_bookmark_blue_24dp);
-                        tabLayout.getTabAt(3).setIcon(R.drawable.ic_room_white_24dp);
+                        if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                                == PackageManager.PERMISSION_GRANTED) {
+                            viewMapFab.show();
+                        }else{
+                            viewMapFab.hide();
+                        }
+
+                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_access_alarm_blue_24dp);
+                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_bookmark_blue_24dp);
+                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_room_white_24dp);
+
                         break;
                 }
             }
@@ -125,6 +152,61 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mViewPager.getCurrentItem() == 2){
+            if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                viewMapFab.hide();
+            }else{
+                viewMapFab.show();
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSIONS_REQUEST_FINE_LOCATION:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.e("PERMISSION", "PERMISSION ACCEPTED");
+                    SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putBoolean("LOCATIONACCEPTED", true);
+                    editor.apply();
+                }else {
+                    Log.e("PERMISSION", "PERMISSION DENIED");
+                    SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putBoolean("LOCATIONPERMISSION", false);
+                    editor.apply();
+                }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.e("TEST", "OnActivityRESULT");
+            switch (requestCode) {
+                case FragmentNearby.GPS_REQUEST_CODE:
+                    switch (resultCode) {
+                        case RESULT_OK:
+                            SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.putBoolean("LOCATION ACCEPTED", true);
+                            editor.apply();
+                            break;
+                        case RESULT_CANCELED:
+                            SharedPreferences prefs1 = getPreferences(Context.MODE_PRIVATE);
+                            SharedPreferences.Editor editor1 = prefs1.edit();
+                            editor1.putBoolean("LOCATION ACCEPTED", false);
+                            editor1.apply();
+                            break;
+                    }
+            }
     }
 
     @Override
@@ -139,6 +221,8 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         if (id == R.id.action_settings) {
+            Intent settings  = new Intent(MainActivity.this, SettingsActivity.class);
+            startActivity(settings);
             return true;
         }else if (id == R.id.action_feedback){
             return true;
@@ -164,42 +248,11 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-//    /**
-//     * A placeholder fragment containing a simple view.
-//     */
-//    public static class PlaceholderFragment extends Fragment {
-//        private static final String ARG_SECTION_NUMBER = "section_number";
-//
-//        public PlaceholderFragment() {
-//        }
-//
-//        /**
-//         * Returns a new instance of this fragment for the given section
-//         * number.
-//         */
-//        public static PlaceholderFragment newInstance(int sectionNumber) {
-//            PlaceholderFragment fragment = new PlaceholderFragment();
-//            Bundle args = new Bundle();
-//            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-//            fragment.setArguments(args);
-//            return fragment;
-//        }
-//
-//        @Override
-//        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-//                                 Bundle savedInstanceState) {
-//            View rootView = inflater.inflate(R.layout.fragment_one, container, false);
-//            TextView textView = (TextView) rootView.findViewById(R.id.section_label);
-//            textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
-//            return rootView;
-//        }
-//    }
-
     /**
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
      * one of the sections/tabs/pages.
      */
-    public class SectionsPagerAdapter extends FragmentPagerAdapter {
+    public class SectionsPagerAdapter extends FragmentStatePagerAdapter {
 
         SectionsPagerAdapter(FragmentManager fm) {
             super(fm);
@@ -211,20 +264,31 @@ public class MainActivity extends AppCompatActivity {
             // Return a PlaceholderFragment (defined as a static inner class below).
             Fragment fragment = new Fragment();
             if (position == 0){
-                fragment = new FragmentHome();
-            }else if (position == 1){
                 fragment = new FragmentAlarm();
-            }else if (position == 2){
+            }else if (position == 1){
                 fragment = new FragmentBookmarks();
-            }else if (position == 3){
+            }else if (position == 2){
                 fragment = new FragmentNearby();
+                if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putBoolean("LOCATIONPERMISSION", true);
+                    editor.apply();
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        ActivityCompat.requestPermissions(MainActivity.this,
+                                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                                PERMISSIONS_REQUEST_FINE_LOCATION);
+                    }
+                }
             }
-            return fragment;//PlaceholderFragment.newInstance(position + 1);
+            return fragment;
         }
 
         @Override
         public int getCount() {
-            return 4;
+            return 3;
         }
 
         @Override
@@ -238,6 +302,11 @@ public class MainActivity extends AppCompatActivity {
             ImageSpan imageSpan = new ImageSpan(image, ImageSpan.ALIGN_BOTTOM);
             sb.setSpan(imageSpan, 0, 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             return null;
+        }
+
+        @Override
+        public int getItemPosition(Object object) {
+            return POSITION_NONE;
         }
     }
 }

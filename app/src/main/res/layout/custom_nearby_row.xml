@@ -54,7 +54,14 @@
             android:layout_alignParentEnd="true"
             android:text="Distance"/>
 
-
+        <ProgressBar
+            android:id="@+id/findingTimingProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"/>
 
     </RelativeLayout>
 

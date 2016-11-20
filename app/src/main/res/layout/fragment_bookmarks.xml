@@ -2,12 +2,93 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="itrans.newinterface.FragmentBookmarks">
+    tools:context="itrans.newinterface.Bookmarks.FragmentBookmarks">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="This is bookmark" />
+        android:layout_height="match_parent">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <ExpandableListView
+                android:id="@+id/lvBusStopBookmarks"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+            </ExpandableListView>
+
+            <ListView
+                android:id="@+id/lvBusServiceBookmarks"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/bookmarkSelect"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:translationY="?attr/actionBarSize"
+            android:alpha="0"
+            android:baselineAligned="false"
+            android:orientation="horizontal"
+            android:layout_alignParentBottom="true"
+            android:background="#455A64"
+            android:weightSum="100">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="50"
+                android:clickable="true"
+                android:orientation="vertical"
+                android:weightSum="100">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="60"
+                    android:src="@drawable/bus_stop_icon" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="40"
+                    android:text="Bus Stop"
+                    android:textColor="@color/black"
+                    android:textAlignment="center" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="50"
+                android:clickable="true"
+                android:orientation="vertical"
+                android:weightSum="100">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="60"
+                    android:paddingTop="2dp"
+                    android:src="@drawable/ic_directions_bus_black_24dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="40"
+                    android:text="Bus Service"
+                    android:textColor="@color/black"
+                    android:textAlignment="center" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </RelativeLayout>
 
 </FrameLayout>

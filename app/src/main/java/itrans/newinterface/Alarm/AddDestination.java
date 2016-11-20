@@ -1,4 +1,4 @@
-package itrans.newinterface;
+package itrans.newinterface.Alarm;
 
 import android.content.Intent;
 import android.graphics.Color;
@@ -40,6 +40,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.text.DecimalFormat;
 
 import itrans.newinterface.Internet.VolleySingleton;
+import itrans.newinterface.R;
 
 public class AddDestination extends AppCompatActivity implements View.OnClickListener, SeekBar.OnSeekBarChangeListener,
         OnMapReadyCallback{

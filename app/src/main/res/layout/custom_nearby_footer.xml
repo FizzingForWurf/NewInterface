@@ -1,13 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:focusable="false">
 
-    <Button
+    <LinearLayout
+        android:id="@+id/footer_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        />
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="10dp"
+        android:orientation="horizontal"
+        android:focusable="false">
 
-</LinearLayout>
+        <ImageView
+            android:id="@+id/nearbySaveStop"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:layout_marginEnd="20dp"
+            android:clickable="true"
+            android:src="@drawable/ic_bookmark_border_black_24dp"
+            android:focusable="false"/>
+
+        <ImageView
+            android:id="@+id/nearbyRefreshTimings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:clickable="true"
+            android:src="@drawable/ic_refresh_black_24dp"
+            android:focusable="false"/>
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#CFD8DC"
+        android:layout_below="@+id/footer_container"/>
+
+</RelativeLayout>

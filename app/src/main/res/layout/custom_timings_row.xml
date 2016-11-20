@@ -7,20 +7,36 @@
     android:paddingStart="?android:attr/expandableListPreferredItemPaddingLeft"
     android:paddingEnd="10dp"
     android:paddingTop="10dp"
-    android:paddingBottom="20dp">
+    android:paddingBottom="10dp">
 
     <TextView
         android:id="@+id/nearbyBus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
         android:textSize="15sp"
         android:text="bus no."/>
 
-    <TextView
-        android:id="@+id/nearbyBusTiming"
+    <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:text="bus timing"/>
+        android:layout_alignParentEnd="true">
+
+        <TextView
+            android:id="@+id/nearbyBusTiming"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:text="bus timing"/>
+
+        <View
+            android:id="@+id/nearbyTimingLoad"
+            android:layout_width="40dp"
+            android:layout_height="5dp"
+            android:layout_below="@+id/nearbyBusTiming"
+            android:layout_centerHorizontal="true"
+            android:background="@color/black"/>
+
+    </RelativeLayout>
 
 </RelativeLayout>
