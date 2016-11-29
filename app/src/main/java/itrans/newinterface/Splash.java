@@ -6,16 +6,15 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Location;
+import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.android.volley.RequestQueue;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 
@@ -24,7 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-import itrans.newinterface.Internet.VolleySingleton;
+import itrans.newinterface.Bookmarks.BusStopBookmarks;
 
 public class Splash extends AppCompatActivity {
     private TextView splashDescription;
@@ -47,45 +46,61 @@ public class Splash extends AppCompatActivity {
     }
 
     private void addBusServices() {
-        Log.e("BUS SERVICE", "BUSSERVICE");
-        BusServiceDBAdapter db = new BusServiceDBAdapter(getApplicationContext());
+        BusStopBookmarks db = new BusStopBookmarks(this);
         db.open();
-        db.removeAllEntries();
-
-        InputStream busServiceData = getResources().openRawResource(R.raw.bus_service_number);
-        InputStream directionOneData = getResources().openRawResource(R.raw.direction_one);
-        InputStream directionTwoData = getResources().openRawResource(R.raw.direction_two);
-
-        Scanner scBusNumber = new Scanner(busServiceData);
-        Scanner scDirectionOne = new Scanner(directionOneData);
-        Scanner scDirectionTwo = new Scanner(directionTwoData);
-
-        int counter = 1;
-        while (scBusNumber.hasNextLine()) {
-            String data = scBusNumber.nextLine();
-            db.insertEntry(data, "WAIT", "WAIT");
-            Log.e("TEST", String.valueOf(counter));
-            counter++;
+        if (db.getNumberOfRows() < 2) { //this means that bookmarks database isn't setup yet
+            //add items to database for setup
+            for (int i = 0; i < 2; i++) {
+                switch (i) {
+                    case 0:
+                        db.setUpBookmarksLayout("BUSSERVICE", "EMPTY");
+                        break;
+                    case 1:
+                        db.setUpBookmarksLayout("BUSSTOP", "EMPTY");
+                        break;
+                }
+            }
         }
-
-        counter = 1;
-        while (scDirectionOne.hasNextLine()) {
-            String data = scDirectionOne.nextLine();
-            db.updateDirectionOneEntry(counter, data);
-            Log.e("TEST", String.valueOf(counter));
-            counter++;
-        }
-
-        counter = 1;
-        while (scDirectionTwo.hasNextLine()) {
-            String data = scDirectionTwo.nextLine();
-            db.updateDirectionOneEntry(counter, data);
-            Log.e("TEST", String.valueOf(counter));
-            counter++;
-        }
-
-        Log.e("COMPLETE TRANSFER", String.valueOf(db.getNumberOfRows()));
         db.close();
+
+//        BusServiceDBAdapter db = new BusServiceDBAdapter(getApplicationContext());
+//        db.open();
+//        db.removeAllEntries();
+//
+//        InputStream busServiceData = getResources().openRawResource(R.raw.bus_service_number);
+//        InputStream directionOneData = getResources().openRawResource(R.raw.direction_one);
+//        InputStream directionTwoData = getResources().openRawResource(R.raw.direction_two);
+//
+//        Scanner scBusNumber = new Scanner(busServiceData);
+//        Scanner scDirectionOne = new Scanner(directionOneData);
+//        Scanner scDirectionTwo = new Scanner(directionTwoData);
+//
+//        int counter = 1;
+//        while (scBusNumber.hasNextLine()) {
+//            String data = scBusNumber.nextLine();
+//            db.insertEntry(data, "WAIT", "WAIT");
+//            Log.e("TEST", String.valueOf(counter));
+//            counter++;
+//        }
+//
+//        counter = 1;
+//        while (scDirectionOne.hasNextLine()) {
+//            String data = scDirectionOne.nextLine();
+//            db.updateDirectionOneEntry(counter, data);
+//            Log.e("TEST", String.valueOf(counter));
+//            counter++;
+//        }
+//
+//        counter = 1;
+//        while (scDirectionTwo.hasNextLine()) {
+//            String data = scDirectionTwo.nextLine();
+//            db.updateDirectionTwoEntry(counter, data);
+//            Log.e("TEST", String.valueOf(counter));
+//            counter++;
+//        }
+//
+//        Log.e("COMPLETE TRANSFER", String.valueOf(db.getNumberOfRows()));
+//        db.close();
         //startSortingBusStops();
         if (!stopSettingUp) {
             addBusStops();
@@ -191,7 +206,6 @@ public class Splash extends AppCompatActivity {
         Scanner sc = new Scanner(dataStream);
 
         StringBuilder entry = new StringBuilder();
-        int counter = 1;
         while (sc.hasNextLine()) {
             if (!stopSettingUp) {
                 String data = sc.nextLine();
@@ -205,8 +219,6 @@ public class Splash extends AppCompatActivity {
                     db.insertBusStop(id, name, road, coordinates);
 
                     entry.setLength(0);
-                    Log.e("TEST", String.valueOf(counter));
-                    counter++;
                 } else {
                     entry.append(data).append('\n');
                 }
@@ -215,7 +227,7 @@ public class Splash extends AppCompatActivity {
             }
         }
 
-        Log.e("COMPLETE TRANSFER", String.valueOf(db.getNumberOfRows()));
+        Log.e("COMPLETE TRANSFER1", String.valueOf(db.getNumberOfRows()));
         db.close();
         sc.close();
 
@@ -291,7 +303,8 @@ public class Splash extends AppCompatActivity {
         boolean hasCompletedSetUp = sharedPref.getBoolean("SETUPCOMPLETE", false);
         Log.e("NUMBER OF ENTRIES", String.valueOf(hasCompletedSetUp));
 
-        if ((number1 <= 453 || number2 <= 5282) || !hasCompletedSetUp) {
+        //number1 <= 453 ||
+        if ((number2 <= 5282) || !hasCompletedSetUp) {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
             SharedPreferences.Editor editor = prefs.edit();
             editor.putBoolean("SETUPCOMPLETE", false);

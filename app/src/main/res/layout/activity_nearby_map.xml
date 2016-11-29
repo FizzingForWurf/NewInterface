@@ -5,6 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/nearbyMapParent"
     tools:context="itrans.newinterface.Nearby.NearbyMap">
 
     <RelativeLayout
@@ -29,7 +30,7 @@
             app:floatingSearch_searchBarMarginLeft="3dp"
             app:floatingSearch_searchBarMarginTop="3dp"
             app:floatingSearch_searchBarMarginRight="3dp"
-            app:floatingSearch_searchHint="Search..."
+            app:floatingSearch_searchHint="Search for a location..."
             app:floatingSearch_suggestionsListAnimDuration="250"
             app:floatingSearch_showSearchKey="false"
             app:floatingSearch_leftActionMode="showHome"

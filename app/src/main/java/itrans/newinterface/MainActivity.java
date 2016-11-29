@@ -1,7 +1,10 @@
 package itrans.newinterface;
 
 import android.Manifest;
+import android.animation.LayoutTransition;
 import android.app.AlertDialog;
+import android.app.SearchManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -20,20 +23,22 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ImageSpan;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.LinearLayout;
 
 import itrans.newinterface.Alarm.AddDestination;
 import itrans.newinterface.Alarm.FragmentAlarm;
 import itrans.newinterface.Bookmarks.FragmentBookmarks;
 import itrans.newinterface.Nearby.FragmentNearby;
 import itrans.newinterface.Nearby.NearbyMap;
+import itrans.newinterface.Search.SearchResults;
 import itrans.newinterface.Settings.SettingsActivity;
 
 public class MainActivity extends AppCompatActivity {
@@ -60,8 +65,6 @@ public class MainActivity extends AppCompatActivity {
         mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
         prefs = getPreferences(Context.MODE_PRIVATE);
         editor = prefs.edit();
-        editor.putBoolean("NEARBYPAGE", false);
-        editor.apply();
 
         // Set up the ViewPager with the sections adapter.
         mViewPager = (ViewPager) findViewById(R.id.container);
@@ -71,11 +74,9 @@ public class MainActivity extends AppCompatActivity {
         final TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(mViewPager);
 
-        tabLayout.getTabAt(0).setIcon(R.drawable.ic_access_alarm_white_24dp);
+        tabLayout.setTabMode(TabLayout.MODE_FIXED);
         tabLayout.getTabAt(0).setText("Alarms");
-        tabLayout.getTabAt(1).setIcon(R.drawable.ic_bookmark_blue_24dp);
         tabLayout.getTabAt(1).setText("Bookmarks");
-        tabLayout.getTabAt(2).setIcon(R.drawable.ic_room_blue_24dp);
         tabLayout.getTabAt(2).setText("Nearby");
 
         final FloatingActionButton AddDestinationFab = (FloatingActionButton) findViewById(R.id.AddDestinationFab);
@@ -107,28 +108,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageSelected(int position) {
                 switch (position) {
-                    case -1:
-                        setTitle("iTrans");
-                        AddDestinationFab.hide();
-                        viewMapFab.hide();
-                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_access_alarm_white_24dp);
-                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_bookmark_blue_24dp);
-                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_room_blue_24dp);
-                        break;
                     case 0:
                         AddDestinationFab.show();
                         viewMapFab.hide();
-                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_access_alarm_white_24dp);
-                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_bookmark_blue_24dp);
-                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_room_blue_24dp);
                         break;
                     case 1:
                         AddDestinationFab.hide();
                         viewMapFab.hide();
-
-                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_access_alarm_blue_24dp);
-                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_bookmark_white_24dp);
-                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_room_blue_24dp);
                         break;
                     case 2:
                         AddDestinationFab.hide();
@@ -137,12 +123,12 @@ public class MainActivity extends AppCompatActivity {
                             viewMapFab.show();
                         }else{
                             viewMapFab.hide();
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                ActivityCompat.requestPermissions(MainActivity.this,
+                                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                                        PERMISSIONS_REQUEST_FINE_LOCATION);
+                            }
                         }
-
-                        tabLayout.getTabAt(0).setIcon(R.drawable.ic_access_alarm_blue_24dp);
-                        tabLayout.getTabAt(1).setIcon(R.drawable.ic_bookmark_blue_24dp);
-                        tabLayout.getTabAt(2).setIcon(R.drawable.ic_room_white_24dp);
-
                         break;
                 }
             }
@@ -169,27 +155,26 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case PERMISSIONS_REQUEST_FINE_LOCATION:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.e("PERMISSION", "PERMISSION ACCEPTED");
                     SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
                     SharedPreferences.Editor editor = prefs.edit();
                     editor.putBoolean("LOCATIONACCEPTED", true);
                     editor.apply();
                 }else {
-                    Log.e("PERMISSION", "PERMISSION DENIED");
                     SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
                     SharedPreferences.Editor editor = prefs.edit();
                     editor.putBoolean("LOCATIONPERMISSION", false);
                     editor.apply();
                 }
+                break;
         }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.e("TEST", "OnActivityRESULT");
             switch (requestCode) {
                 case FragmentNearby.GPS_REQUEST_CODE:
                     switch (resultCode) {
@@ -206,6 +191,20 @@ public class MainActivity extends AppCompatActivity {
                             editor1.apply();
                             break;
                     }
+                    break;
+                case FragmentAlarm.GPS_REQUEST_CODE_ALARM:
+                    switch (resultCode) {
+                        case RESULT_OK:
+                            SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.putBoolean("Bookmark Location ACCEPTED", true);
+                            editor.apply();
+                            break;
+                        case RESULT_CANCELED:
+
+                            break;
+                    }
+                    break;
             }
     }
 
@@ -213,6 +212,14 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+        ComponentName cn = new ComponentName(this, SearchResults.class);
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(cn));
+
+        LinearLayout searchBar = (LinearLayout) searchView.findViewById(R.id.search_bar);
+        searchBar.setLayoutTransition(new LayoutTransition());
         return true;
     }
 
@@ -275,12 +282,6 @@ public class MainActivity extends AppCompatActivity {
                     SharedPreferences.Editor editor = prefs.edit();
                     editor.putBoolean("LOCATIONPERMISSION", true);
                     editor.apply();
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        ActivityCompat.requestPermissions(MainActivity.this,
-                                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                                PERMISSIONS_REQUEST_FINE_LOCATION);
-                    }
                 }
             }
             return fragment;

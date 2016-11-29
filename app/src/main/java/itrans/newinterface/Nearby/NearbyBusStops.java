@@ -9,6 +9,7 @@ public class NearbyBusStops {
     private Double busStopLat;
     private Double busStopLng;
     private int proximity;
+    private boolean checked;
 
     private ArrayList<NearbyBusTimings> arrivalTimings;
 
@@ -66,5 +67,13 @@ public class NearbyBusStops {
 
     public void setProximity(int proximity) {
         this.proximity = proximity;
+    }
+
+    public boolean isChecked() {
+        return checked;
+    }
+
+    public void setChecked(boolean checked) {
+        this.checked = checked;
     }
 }

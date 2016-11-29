@@ -1,6 +1,8 @@
 package itrans.newinterface.Nearby;
 
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -25,7 +27,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.ExpandableListView;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -62,11 +63,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+import itrans.newinterface.Bookmarks.BusStopBookmarks;
 import itrans.newinterface.Internet.VolleySingleton;
 import itrans.newinterface.R;
 
-public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRefreshListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener,
-        AbsListView.OnScrollListener, ExpandableListView.OnGroupClickListener, ExpandableListView.OnChildClickListener {
+public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRefreshListener,
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener,
+        AbsListView.OnScrollListener, ExpandableListView.OnGroupClickListener, ExpandableListView.OnChildClickListener,
+        NearbyExpandListAdapter.NearbyAdapterInterface {
     public static final int GPS_REQUEST_CODE = 50;
 
     private NearbyExpandListAdapter adapter;
@@ -77,8 +81,10 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
     private ProgressBar searchingProgress;
     private AnimatedExpandableListView lvNearby;
     private TextView tvNearbyError;
+    private TextView tvNearbyNoResults;
     private SwipeRefreshLayout nearbySwipe;
     private CoordinatorLayout coordinatorLayout;
+    private Snackbar snackbar;
 
     private Location mLocation;
     private LatLng mLatLng;
@@ -90,6 +96,7 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
 
     private boolean stopFindingNearby = false;
     private boolean isViewShown = true;
+    private boolean refreshDontExpand = false;
 
     public FragmentNearby() {
         // Required empty public constructor
@@ -109,14 +116,15 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        Log.e("OnCreateView", "OnCreateView Called");
         View v = inflater.inflate(R.layout.fragment_nearby, container, false);
         searchingProgress = (ProgressBar) v.findViewById(R.id.searchingProgress);
         lvNearby = (AnimatedExpandableListView) v.findViewById(R.id.lvNearby);
         nearbySwipe = (SwipeRefreshLayout) v.findViewById(R.id.nearbySwipe);
         tvNearbyError = (TextView) v.findViewById(R.id.tvNearbyError);
+        tvNearbyNoResults = (TextView) v.findViewById(R.id.tvNearbyNoResults);
         coordinatorLayout = (CoordinatorLayout) v.findViewById(R.id.nearbyParent);
 
+        tvNearbyNoResults.setVisibility(View.INVISIBLE);
         tvNearbyError.setVisibility(View.INVISIBLE);
         searchingProgress.setVisibility(View.INVISIBLE);
         lvNearby.setVisibility(View.VISIBLE);
@@ -134,7 +142,6 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
     @Override
     public void setUserVisibleHint(boolean isVisibleToUser) {
         if (isVisibleToUser) {
-            Log.e("TEST", "VISIBLE");
             if (getView() != null) { //beside fragment
                 isViewShown = true;
                 if (nearbyBusStops.isEmpty() && !nearbySwipe.isRefreshing()) {
@@ -142,21 +149,37 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                         buildGoogleApiClient();
                     }
                     if (!mGoogleApiClient.isConnected()) {
-                        Log.e("TEST", "setUserVisibilityHint OnConnect");
                         mGoogleApiClient.connect();
                     }
-                    //Toast.makeText(getContext(), "iTrans is enable to determine your location. Please swipe down to try again.", Toast.LENGTH_LONG).show();
                 }
             } else {
                 isViewShown = false;
+            }
+        }
+
+        if (!isVisibleToUser) {
+            if (snackbar != null) {
+                snackbar.dismiss();
+            }
+
+            if (mGoogleApiClient != null) {
+                if (mGoogleApiClient.isConnected()) {
+                    stopLocationUpdates();
+                    mGoogleApiClient.disconnect();
+                }
             }
         }
     }
 
     @Override
     public void onDestroyView() {
-        Log.e("TEST", "OnDestroyView Called!");
         stopFindingNearby = true;
+        if (mGoogleApiClient != null) {
+            if (mGoogleApiClient.isConnected()) {
+                stopLocationUpdates();
+                mGoogleApiClient.disconnect();
+            }
+        }
         super.onDestroyView();
     }
 
@@ -196,15 +219,15 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
 
     @Override
     public void onResume() {
-        Log.e("OnResume", "OnResume Called");
         if (hasLocationPermissions()) {
+            nearbySwipe.setEnabled(true);
             SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
-            editor.putBoolean("LOCATIONPERMISSION", false);
+            editor.putBoolean("LOCATIONPERMISSION", true);
             editor.apply();
 
             if (nearbyBusStops != null) {
-                adapter = new NearbyExpandListAdapter(getContext());
+                adapter = new NearbyExpandListAdapter(getContext(), this);
                 adapter.setData(nearbyBusStops);
                 lvNearby.setAdapter(adapter);
             }
@@ -265,9 +288,9 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
         } else {
             SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
             boolean hasCompletedSetUp = prefs.getBoolean("LOCATIONPERMISSION", true);
-            Log.e("PERMISSION OnResume", "BOOLEAN: " + String.valueOf(hasCompletedSetUp));
             if (!hasCompletedSetUp) {
-                Snackbar snackbar = Snackbar
+                nearbySwipe.setEnabled(false);
+                snackbar = Snackbar
                         .make(coordinatorLayout, "Allow location access in permission settings to find nearby bus stops. ", Snackbar.LENGTH_INDEFINITE)
                         .setAction("Settings", new View.OnClickListener() {
                             @Override
@@ -279,7 +302,6 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                                 startActivity(intent);
                             }
                         });
-                //View snackbarView = snackbar.getView();
                 snackbar.show();
             }
         }
@@ -288,25 +310,14 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
 
     @Override
     public void onPause() {
-        Log.e("TEST", "OnPause called");
-        SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putBoolean("NEARBYPAGE", false);
-        editor.apply();
-
-        if (mGoogleApiClient != null) {
-            if (mGoogleApiClient.isConnected()) {
-                stopLocationUpdates();
-            }
-        }
         super.onPause();
     }
 
     @Override
     public void onStop() {
-        Log.e("TEST", "OnStop called");
         if (mGoogleApiClient != null) {
             if (mGoogleApiClient.isConnected()) {
+                stopLocationUpdates();
                 mGoogleApiClient.disconnect();
             }
         }
@@ -315,7 +326,6 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-        Log.e("GOOGLE LOCAPI CONNECTED", "CONNECTED");
         if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
@@ -465,29 +475,13 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                                 int childPosition, long id) {
         ArrayList<NearbyBusTimings> chList = nearbyBusStops.get(groupPosition).getArrivalTimings();
         if (chList.size() <= childPosition) {
-            final ImageView nearbySaveStop = (ImageView) view.findViewById(R.id.nearbySaveStop);
-            ImageView nearbyRefreshTimings = (ImageView) view.findViewById(R.id.nearbyRefreshTimings);
-
-            nearbySaveStop.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Toast.makeText(getContext(), "SAVE STOP CLICKED", Toast.LENGTH_SHORT).show();
-                }
-            });
-
-            nearbyRefreshTimings.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Toast.makeText(getContext(), "REFRESH CLICKED", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }else{
-            view.setOnClickListener(null);
+            Toast.makeText(getContext(), "LAST ITEM CLICKED", Toast.LENGTH_SHORT).show();
         }
         return false;
     }
 
     private void findNearby() {
+        tvNearbyNoResults.setVisibility(View.INVISIBLE);
         tvNearbyError.setVisibility(View.INVISIBLE);
         distanceArray.clear();
         Thread thread = new Thread() {
@@ -500,6 +494,9 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                 String name = "";
                 String road = "";
                 String id = "";
+                BusStopBookmarks db = new BusStopBookmarks(getContext());
+                db.open();
+                String busStopString = db.getData(2);
                 while (scBusData.hasNextLine()) {
                     if (!stopFindingNearby) {
                         String data = scBusData.nextLine();
@@ -545,15 +542,28 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                                         lonDifference = mLocation.getLongitude() - longitude;
                                     }
                                     if (latDifference + lonDifference <= 0.01202981126) {
-                                        NearbyBusStops nearbyBusStops1 = new NearbyBusStops();
-                                        nearbyBusStops1.setBusStopID(id);
-                                        nearbyBusStops1.setBusStopName(name);
-                                        nearbyBusStops1.setBusStopRoad(road);
-                                        nearbyBusStops1.setProximity((int) mLocation.distanceTo(busStop));
-                                        nearbyBusStops1.setArrivalTimings(new ArrayList<NearbyBusTimings>());
+                                        if (!name.equals("Non Stop")) {
+                                            NearbyBusStops nearbyBusStops1 = new NearbyBusStops();
+                                            nearbyBusStops1.setBusStopID(id);
+                                            nearbyBusStops1.setBusStopName(name);
+                                            nearbyBusStops1.setBusStopRoad(road);
+                                            nearbyBusStops1.setProximity((int) mLocation.distanceTo(busStop));
+                                            nearbyBusStops1.setArrivalTimings(new ArrayList<NearbyBusTimings>());
 
-                                        nearbyBusStops.add(nearbyBusStops1);
-                                        distanceArray.add((int) mLocation.distanceTo(busStop));
+                                            if (!busStopString.equals("EMPTY")) {
+                                                String[] split = busStopString.split(", ");
+                                                for (String a : split) {
+                                                    if (a.equals(id)) {
+                                                        nearbyBusStops1.setChecked(true);
+                                                    } else {
+                                                        nearbyBusStops1.setChecked(false);
+                                                    }
+                                                }
+                                            }
+
+                                            nearbyBusStops.add(nearbyBusStops1);
+                                            distanceArray.add((int) mLocation.distanceTo(busStop));
+                                        }
                                     }
                                     break;
                             }
@@ -561,6 +571,7 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                         }
                     }
                 }
+                db.close();
                 Log.e("NEARBY", String.valueOf(nearbyBusStops.size()));
                 Collections.sort(distanceArray);
 
@@ -577,12 +588,49 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                                     return nearbyBusStops.getProximity() - t1.getProximity();
                                 }
                             });
-                            adapter = new NearbyExpandListAdapter(getContext());
+                            adapter = new NearbyExpandListAdapter(getContext(), FragmentNearby.this);
                             adapter.setData(nearbyBusStops);
                             lvNearby.setAdapter(adapter);
 
                             tvNearbyError.setVisibility(View.INVISIBLE);
-                            searchingProgress.setVisibility(View.INVISIBLE);
+
+                            if (lvNearby.getCount() > 0) {
+                                tvNearbyNoResults.setVisibility(View.INVISIBLE);
+
+                                lvNearby.setAlpha(0f);
+                                lvNearby.setVisibility(View.VISIBLE);
+                                lvNearby.animate()
+                                        .alpha(1f)
+                                        .setDuration(300)
+                                        .setListener(null);
+
+                                searchingProgress.animate()
+                                        .alpha(0f)
+                                        .setDuration(300)
+                                        .setListener(new AnimatorListenerAdapter() {
+                                            @Override
+                                            public void onAnimationEnd(Animator animation) {
+                                                searchingProgress.setVisibility(View.INVISIBLE);
+                                            }
+                                        });
+                            } else {
+                                tvNearbyNoResults.setAlpha(0f);
+                                tvNearbyNoResults.setVisibility(View.VISIBLE);
+                                tvNearbyNoResults.animate()
+                                        .alpha(1f)
+                                        .setDuration(300)
+                                        .setListener(null);
+
+                                searchingProgress.animate()
+                                        .alpha(0f)
+                                        .setDuration(300)
+                                        .setListener(new AnimatorListenerAdapter() {
+                                            @Override
+                                            public void onAnimationEnd(Animator animation) {
+                                                searchingProgress.setVisibility(View.INVISIBLE);
+                                            }
+                                        });
+                            }
                             lvNearby.setVisibility(View.VISIBLE);
                         }
                     });
@@ -618,7 +666,7 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                                         load = "";
                                         break;
                                     default:
-                                        eta = "No data available from LTA";
+                                        eta = "No data available";
                                         load = "";
                                         break;
                                 }
@@ -638,7 +686,10 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                             Toast.makeText(getContext(), "Error", Toast.LENGTH_LONG).show();
                         }
                         nearbyBusStops.get(groupPosition).setProximity(distanceArray.get(groupPosition));
-                        lvNearby.expandGroupWithAnimation(groupPosition);
+                        adapter.notifyDataSetChanged();
+                        if (!refreshDontExpand) {
+                            lvNearby.expandGroupWithAnimation(groupPosition);
+                        }
                     }
                 },
                 new Response.ErrorListener() {
@@ -647,6 +698,8 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
                         Log.e("VOLLEY", "ERROR");
                         nearbyBusStops.get(groupPosition).setProximity(distanceArray.get(groupPosition));
                         adapter.notifyDataSetChanged();
+
+                        lvNearby.collapseGroupWithAnimation(groupPosition);
 
                         Toast.makeText(getContext(), "Please ensure that you have stable network connection and try again.", Toast.LENGTH_LONG).show();
                     }
@@ -661,5 +714,14 @@ public class FragmentNearby extends Fragment implements SwipeRefreshLayout.OnRef
             }
         };
         requestQueue.add(BusStopRequest);
+    }
+
+    @Override
+    public void refreshNearbyTimings(int groupPosition) {
+        refreshDontExpand = true;
+
+        String id = nearbyBusStops.get(groupPosition).getBusStopID();
+        findBusArrivalTimings(groupPosition, id);
+        refreshDontExpand = false;
     }
 }

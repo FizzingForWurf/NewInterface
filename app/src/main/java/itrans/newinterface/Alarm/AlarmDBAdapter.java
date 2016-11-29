@@ -34,7 +34,7 @@ public class AlarmDBAdapter {
         this.context = _context;
     }
 
-    public String getRadius(String position) {
+    public String getRadius(int position) {
         String[] columns = {KEY_ID, ENTRY_TITLE, ENTRY_DESTINATION, ENTRY_LATLNG, ENTRY_ALERTRADIUS};
         Cursor c = _db.query(DATABASE_TABLE, columns, UNIQUE_ID + " = " + position, null, null, null, null);
         int iRadius = c.getColumnIndex(ENTRY_ALERTRADIUS);
@@ -45,7 +45,7 @@ public class AlarmDBAdapter {
         return null;
     }
 
-    public String getLatLng(String position) {
+    public String getLatLng(int position) {
         String[] columns = {KEY_ID, ENTRY_TITLE, ENTRY_DESTINATION, ENTRY_LATLNG, ENTRY_ALERTRADIUS};
         Cursor c = _db.query(DATABASE_TABLE, columns, UNIQUE_ID + " = " + position, null,null,null,null);
         int iLatLng = c.getColumnIndex(ENTRY_LATLNG);
@@ -56,7 +56,7 @@ public class AlarmDBAdapter {
         return null;
     }
 
-    public String getDestination(String position) {
+    public String getDestination(int position) {
         String[] columns = {KEY_ID, ENTRY_TITLE, ENTRY_DESTINATION, ENTRY_LATLNG, ENTRY_ALERTRADIUS};
         Cursor c = _db.query(DATABASE_TABLE, columns, UNIQUE_ID + " = " + position, null,null,null,null);
         int iDestination = c.getColumnIndex(ENTRY_DESTINATION);
@@ -67,7 +67,7 @@ public class AlarmDBAdapter {
         return null;
     }
 
-    public String getTitle(String position) {
+    public String getTitle(int position) {
         String[] columns = {KEY_ID, ENTRY_TITLE, ENTRY_DESTINATION, ENTRY_LATLNG, ENTRY_ALERTRADIUS};
         Cursor c = _db.query(DATABASE_TABLE, columns, UNIQUE_ID + " = " + position, null,null,null,null);
         int iTitle = c.getColumnIndex(ENTRY_TITLE);
@@ -85,13 +85,13 @@ public class AlarmDBAdapter {
         updatedValues.put(ENTRY_LATLNG, newLatLng);
         updatedValues.put(ENTRY_ALERTRADIUS, newRadius);
 
-        _db.update(DATABASE_TABLE, updatedValues, UNIQUE_ID + "=" + rowNumber,null);
+        _db.update(DATABASE_TABLE, updatedValues, UNIQUE_ID + "=" + rowNumber, null);
     }
 
     public void updateUniqueId(int idNeededToBeChanged){
         ContentValues rowId = new ContentValues();
         rowId.put(UNIQUE_ID, idNeededToBeChanged - 1);
-        _db.update(DATABASE_TABLE, rowId, UNIQUE_ID + "=" + idNeededToBeChanged,null);
+        _db.update(DATABASE_TABLE, rowId, UNIQUE_ID + "=" + idNeededToBeChanged, null);
     }
 
     public class MyDBOpenHelper extends SQLiteOpenHelper {

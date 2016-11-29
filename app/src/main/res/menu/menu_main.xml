@@ -20,4 +20,11 @@
         android:orderInCategory="300"
         android:title="@string/about_us"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_search"
+        android:title="Search"
+        android:icon="@drawable/ic_search_white_24dp"
+        app:showAsAction="collapseActionView|ifRoom"
+        app:actionViewClass="android.support.v7.widget.SearchView" />
 </menu>

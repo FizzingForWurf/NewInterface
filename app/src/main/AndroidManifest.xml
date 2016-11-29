@@ -55,12 +55,38 @@
         <activity android:name=".Alarm.AddDestination" />
         <activity
             android:name=".Nearby.NearbyMap"
-            android:theme="@style/AppTheme.NoActionBar.TranslucentStatusBar">
+            android:theme="@style/AppTheme.NoActionBar.TranslucentStatusBar" />
+        <activity android:name=".Settings.SettingsActivity" />
+        <activity
+            android:name=".Alarm.AlarmRing"
+            android:theme="@style/AppTheme.NoActionBar.TranslucentStatusBar" />
 
-        </activity>
+        <service
+            android:name=".Alarm.LocationTrackingService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="" />
+
+        <receiver
+            android:name=".Alarm.AlarmReceiver"
+            android:enabled="true"
+            android:exported="true" />
 
         <activity
-            android:name=".Settings.SettingsActivity" />
+            android:name=".Search.SearchResults"
+            android:label="@string/title_activity_search_results"
+            android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.searchable"
+                android:resource="@xml/searchable" />
+        </activity>
+        <activity android:name=".Search.SearchServices"></activity>
     </application>
 
 </manifest>

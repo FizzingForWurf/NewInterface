@@ -124,6 +124,26 @@ public class BusNumberDBAdapter {
         return null;
     }
 
+    public String getBusStopRoad(String stopID) {
+        String[] columns = {KEY_ID, BUS_STOP_NO, BUS_STOP_NAME, BUS_STOP_DESCRIPTION, BUS_STOP_LATLNG};
+        Cursor c = null;
+        try {
+            c = _db.query(DATABASE_TABLE, columns, BUS_STOP_NO + " = " + stopID, null, null, null, null);
+            int iNAME = c.getColumnIndex(BUS_STOP_DESCRIPTION);
+            if (c != null) {
+                c.moveToFirst();
+                return c.getString(iNAME);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+        return null;
+    }
+
     public String getBusStopName(String stopID) {
         String[] columns = {KEY_ID, BUS_STOP_NO, BUS_STOP_NAME, BUS_STOP_DESCRIPTION, BUS_STOP_LATLNG};
         Cursor c = null;

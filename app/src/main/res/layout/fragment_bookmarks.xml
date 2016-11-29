@@ -1,4 +1,4 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -8,87 +8,97 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <RelativeLayout
+        <TextView
+            android:id="@+id/tvBookmarksEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="hello"
+            android:textSize="18sp" />
+
+        <itrans.newinterface.Nearby.AnimatedExpandableListView
+            android:id="@+id/lvBusStopBookmarks"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layoutAnimation="@anim/lvbookmark_animation">
 
-            <ExpandableListView
-                android:id="@+id/lvBusStopBookmarks"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+        </itrans.newinterface.Nearby.AnimatedExpandableListView>
 
-            </ExpandableListView>
-
-            <ListView
-                android:id="@+id/lvBusServiceBookmarks"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
-        </RelativeLayout>
-
-        <LinearLayout
-            android:id="@+id/bookmarkSelect"
+        <ListView
+            android:id="@+id/lvBusServiceBookmarks"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:translationY="?attr/actionBarSize"
-            android:alpha="0"
-            android:baselineAligned="false"
-            android:orientation="horizontal"
-            android:layout_alignParentBottom="true"
-            android:background="#455A64"
-            android:weightSum="100">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="50"
-                android:clickable="true"
-                android:orientation="vertical"
-                android:weightSum="100">
-
-                <ImageView
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="60"
-                    android:src="@drawable/bus_stop_icon" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="40"
-                    android:text="Bus Stop"
-                    android:textColor="@color/black"
-                    android:textAlignment="center" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="50"
-                android:clickable="true"
-                android:orientation="vertical"
-                android:weightSum="100">
-
-                <ImageView
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="60"
-                    android:paddingTop="2dp"
-                    android:src="@drawable/ic_directions_bus_black_24dp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="40"
-                    android:text="Bus Service"
-                    android:textColor="@color/black"
-                    android:textAlignment="center" />
-
-            </LinearLayout>
-
-        </LinearLayout>
+            android:layout_height="wrap_content" />
 
     </RelativeLayout>
 
-</FrameLayout>
+    <LinearLayout
+        android:id="@+id/bookmarkSelect"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_alignParentBottom="true"
+        android:alpha="0"
+        android:background="#F5F5F5"
+        android:baselineAligned="false"
+        android:elevation="10dp"
+        android:orientation="horizontal"
+        android:translationY="64dp"
+        android:weightSum="100">
+
+        <LinearLayout
+            android:id="@+id/bookmarkStopSelector"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="50"
+            android:background="?android:selectableItemBackground"
+            android:clickable="true"
+            android:orientation="vertical"
+            android:weightSum="100">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_gravity="center"
+                android:layout_weight="60"
+                android:src="@drawable/bus_stop_icon" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="40"
+                android:gravity="center"
+                android:text="Bus Stop"
+                android:textColor="@color/black" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/bookmarkServiceSelector"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="50"
+            android:background="?android:selectableItemBackground"
+            android:clickable="true"
+            android:orientation="vertical"
+            android:weightSum="100">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_gravity="center"
+                android:layout_weight="60"
+                android:paddingTop="3dp"
+                android:src="@drawable/ic_directions_bus_black_24dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="40"
+                android:gravity="center"
+                android:text="Bus Service"
+                android:textColor="@color/black" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</RelativeLayout>

@@ -43,7 +43,7 @@ import itrans.newinterface.Internet.VolleySingleton;
 import itrans.newinterface.R;
 
 public class AddDestination extends AppCompatActivity implements View.OnClickListener, SeekBar.OnSeekBarChangeListener,
-        OnMapReadyCallback{
+        OnMapReadyCallback {
 
     private GoogleMap map;
     private Marker myMapMarker;
@@ -125,14 +125,14 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
                 tvRadiusIndicator.setText(finalRadius + "m");
             }
 
-            progressChange = (finalRadius - 50)/50;
+            progressChange = (finalRadius - 50) / 50;
             radiusSeekbar.setProgress(progressChange);
 
-            if (finalRadius >= 900 && finalRadius <= 1300){
+            if (finalRadius >= 900 && finalRadius <= 1300) {
                 tvRadiusIndicator.setTextColor(Color.parseColor("#4CAF50"));
-            }else if ((finalRadius >= 500 && finalRadius < 900) || (finalRadius > 1300 && finalRadius <= 1600)){
+            } else if ((finalRadius >= 500 && finalRadius < 900) || (finalRadius > 1300 && finalRadius <= 1600)) {
                 tvRadiusIndicator.setTextColor(Color.parseColor("#FF9800"));
-            }else {
+            } else {
                 tvRadiusIndicator.setTextColor(Color.parseColor("#F44336"));
             }
 
@@ -183,9 +183,7 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
                 try {
                     Intent placeIntent = builder.build(AddDestination.this);
                     startActivityForResult(placeIntent, PLACE_PICKER_REQUEST);
-                } catch (GooglePlayServicesRepairableException e) {
-                    e.printStackTrace();
-                } catch (GooglePlayServicesNotAvailableException e) {
+                } catch (GooglePlayServicesRepairableException | GooglePlayServicesNotAvailableException e) {
                     e.printStackTrace();
                 }
                 break;
@@ -193,9 +191,7 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
                 try {
                     Intent searchIntent = new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_OVERLAY).build(this);
                     startActivityForResult(searchIntent, PLACE_AUTOCOMPLETE_REQUEST_CODE);
-                } catch (GooglePlayServicesRepairableException e) {
-                    e.printStackTrace();
-                } catch (GooglePlayServicesNotAvailableException e) {
+                } catch (GooglePlayServicesRepairableException | GooglePlayServicesNotAvailableException e) {
                     e.printStackTrace();
                 }
                 break;
@@ -203,7 +199,7 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
                 this.finish();
                 break;
             case R.id.btnDone:
-                if (isUpdate){
+                if (isUpdate) {
                     String addTitle = etTitle.getText().toString();
                     String addDestination = tvDestination.getText().toString();
                     try {
@@ -211,7 +207,7 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
                             Toast.makeText(getApplicationContext(), "Please select your destination before proceeding", Toast.LENGTH_SHORT).show();
                         } else if (etTitle.getText().toString().equals("")) {
                             Toast.makeText(getApplicationContext(), "Please enter a title before proceeding", Toast.LENGTH_SHORT).show();
-                        }else {
+                        } else {
                             AlarmDBAdapter dbAdapter = new AlarmDBAdapter(AddDestination.this);
                             dbAdapter.open();
                             dbAdapter.updateEntry(updateDestinationRowNumber, addTitle, addDestination, finalLatLong, entryRadius);
@@ -219,10 +215,10 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
                             Toast.makeText(getApplicationContext(), "Entry updated!", Toast.LENGTH_SHORT).show();
                             this.finish();
                         }
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
-                }else {
+                } else {
                     if (tvDestination.getText().toString().equals("")) {
                         Toast.makeText(getApplicationContext(), "Please select your destination before proceeding", Toast.LENGTH_SHORT).show();
                     } else if (etTitle.getText().toString().equals("")) {
@@ -249,15 +245,15 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == PLACE_PICKER_REQUEST){
+        if (requestCode == PLACE_PICKER_REQUEST) {
             String latlong;
-            if (resultCode == RESULT_OK){
+            if (resultCode == RESULT_OK) {
                 Place chosenDestination = PlacePicker.getPlace(this, data);
                 latlong = String.format("%s", chosenDestination.getLatLng());
                 String address = String.format("%s", chosenDestination.getAddress());
                 if (address.equals("")) {
                     tvDestination.setText(latlong);
-                }else {
+                } else {
                     tvDestination.setText(address);
                 }
                 processlatlng(latlong);
@@ -279,9 +275,9 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
     }
 
     private void processlatlng(String latlong) {
-        String rawlatlong = latlong.substring(latlong.indexOf("(")+1,latlong.indexOf(")"));
+        String rawlatlong = latlong.substring(latlong.indexOf("(") + 1, latlong.indexOf(")"));
         finalLatLong = rawlatlong;
-        String[] latANDlong =  rawlatlong.split(",");
+        String[] latANDlong = rawlatlong.split(",");
         double latitude = Double.parseDouble(latANDlong[0]);
         double longitude = Double.parseDouble(latANDlong[1]);
         selectedLocation = new LatLng(latitude, longitude);
@@ -307,7 +303,7 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
 
     private void createRadiusVisualisation(LatLng location, int finalRadius) {
 
-        if (myCirleRadius != null){
+        if (myCirleRadius != null) {
             myCirleRadius.remove();
         }
 
@@ -336,7 +332,7 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
         map = googleMap;
         map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
-        if (isUpdate && selectedLocation != null){
+        if (isUpdate && selectedLocation != null) {
             changeMapLocation(selectedLocation);
         }
     }
@@ -352,15 +348,15 @@ public class AddDestination extends AppCompatActivity implements View.OnClickLis
         } else {
             tvRadiusIndicator.setText(finalRadius + "m");
         }
-        if (selectedLocation != null){
+        if (selectedLocation != null) {
             createRadiusVisualisation(selectedLocation, finalRadius);
             map.animateCamera(CameraUpdateFactory.newLatLngZoom(selectedLocation, getZoomLevel(myCirleRadius)));
         }
-        if (finalRadius >= 900 && finalRadius <= 1300){
+        if (finalRadius >= 900 && finalRadius <= 1300) {
             tvRadiusIndicator.setTextColor(Color.parseColor("#4CAF50"));
-        }else if ((finalRadius >= 500 && finalRadius < 900) || (finalRadius > 1300 && finalRadius <= 1600)){
+        } else if ((finalRadius >= 500 && finalRadius < 900) || (finalRadius > 1300 && finalRadius <= 1600)) {
             tvRadiusIndicator.setTextColor(Color.parseColor("#FF9800"));
-        }else {
+        } else {
             tvRadiusIndicator.setTextColor(Color.parseColor("#F44336"));
         }
     }

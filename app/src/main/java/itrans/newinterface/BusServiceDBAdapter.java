@@ -10,7 +10,6 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class BusServiceDBAdapter {
     private static final String DATABASE_NAME = "buses.db";
@@ -21,13 +20,9 @@ public class BusServiceDBAdapter {
     private MyDBOpenHelper dbHelper;
 
     public static final String KEY_ID ="_id";
-    public static final int COLUMN_KEY_ID = 0;
     public static final String BUS_NO = "bus_no";
-    public static final int COLUMN_BN_ID = 1;
     public static final String BUS_DIRECTION_ONE = "bus_one";
-    public static final int COLUMN_BN_ONE = 2;
     public static final String BUS_DIRECTION_TWO = "bus_two";
-    public static final int COLUMN_BN_TWO = 3;
     protected static final String DATABASE_CREATE = "create table " + DATABASE_TABLE + " " + "(" + KEY_ID +
             " integer primary key autoincrement, " + BUS_NO + " text not null, " + BUS_DIRECTION_ONE +
             " text not null, " + BUS_DIRECTION_TWO + " text not null);";
@@ -104,12 +99,10 @@ public class BusServiceDBAdapter {
         _db.delete(DATABASE_TABLE, null, null);
     }
 
-    public List<String> retrieveAllEntries(){
+    public ArrayList<String> retrieveBusServices() {
         String myString = "";
         Cursor c = null;
-        List<String> BusNumbers = new ArrayList<>();
-        List<Integer> BusIDs = new ArrayList<Integer>();
-
+        ArrayList<String> BusNumbers = new ArrayList<>();
         try{
             c = _db.query(DATABASE_TABLE, new String[] {KEY_ID, BUS_NO},null, null, null, null, null);
         }
@@ -119,14 +112,9 @@ public class BusServiceDBAdapter {
 
         if(c != null && c.getCount()>0){
             c.moveToFirst();
-
             do{
-                BusIDs.add(c.getInt(COLUMN_KEY_ID));
-
-                myString = c.getString(COLUMN_BN_ID);
-
+                myString = c.getString(1);
                 BusNumbers.add(myString);
-
             }while(c.moveToNext());
         }
 

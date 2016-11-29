@@ -1,45 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:focusable="false">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:id="@+id/footer_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
-        android:layout_marginEnd="10dp"
-        android:orientation="horizontal"
-        android:focusable="false">
+        android:orientation="horizontal">
 
-        <ImageView
+        <CheckBox
             android:id="@+id/nearbySaveStop"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
-            android:layout_marginEnd="20dp"
-            android:clickable="true"
-            android:src="@drawable/ic_bookmark_border_black_24dp"
-            android:focusable="false"/>
+            android:layout_marginTop="15dp"
+            android:layout_marginBottom="15dp"
+            android:layout_marginEnd="15dp"
+            android:button="@drawable/save_checkbox" />
 
-        <ImageView
+        <ImageButton
             android:id="@+id/nearbyRefreshTimings"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:clickable="true"
-            android:src="@drawable/ic_refresh_black_24dp"
-            android:focusable="false"/>
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:layout_marginEnd="10dp"
+            android:padding="10dp"
+            android:background="?android:selectableItemBackground"
+            android:src="@drawable/ic_refresh_black_24dp" />
 
     </LinearLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#CFD8DC"
-        android:layout_below="@+id/footer_container"/>
+        android:layout_below="@+id/footer_container"
+        android:background="#CFD8DC" />
 
 </RelativeLayout>
